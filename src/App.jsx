@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage';
 import TicketPage from './pages/TicketPage';
 import PhotoPage from './pages/PhotoPage';
 import SetlistPage from './pages/SetlistPage';
+import UnauthorizedPage from './pages/UnauthorizedPage';
 
 // App 컴포넌트는 전체 라우팅을 담당함
 export default function App() {
@@ -27,6 +28,9 @@ export default function App() {
 
         {/* 공연 셋리스트를 보여주는 페이지 */}
         <Route path="/setlist/:userId" element={<SetlistPage />} />
+
+        {/* 인증 없이 페이지 접속시 나오는 페이지 */}
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
       </Routes>
     </Router>
   );

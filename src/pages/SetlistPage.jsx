@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import checkAuthWithToken from '../utils/checkAuthWithToken';
+import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 함수 import
 
 export default function SetlistPage() {
   const { userId } = useParams(); // URL 경로에서 userId(UUID) 추출
@@ -15,12 +15,13 @@ export default function SetlistPage() {
   // 🔐 인증 확인 및 셋리스트 데이터 로드
   useEffect(() => {
     async function fetchData() {
-      const isAuth = await checkAuthWithToken(userId); // 인증 확인
+      const isAuth = await checkAuthWithToken(userId); // ✅ 현재 브라우저에 저장된 ownerToken이 Firestore와 일치하는지 확인
       if (!isAuth) {
-        setAuthorized(false);
+        setAuthorized(false); // 인증 실패 시 렌더링 분기 처리
         return;
       }
 
+      // ✅ 인증 성공 시 Firestore에서 셋리스트 데이터 불러오기
       const docRef = doc(db, 'records', userId); // Firestore에서 해당 문서 참조
       const snap = await getDoc(docRef);         // 문서 가져오기
 

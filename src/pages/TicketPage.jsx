@@ -2,11 +2,12 @@
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { useParams } from 'react-router-dom';
-import checkAuthWithToken from '../utils/checkAuthWithToken';
+import { useParams, useNavigate } from 'react-router-dom'; // 🔁 리디렉션 위해 useNavigate 추가
+import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 함수 import
 
 export default function TicketPage() {
   const { userId } = useParams(); // URL 경로에서 userId(UUID) 추출
+  const navigate = useNavigate(); // 🔁 인증 실패 시 리디렉션에 사용
 
   const [form, setForm] = useState({
     title: '',
@@ -15,31 +16,34 @@ export default function TicketPage() {
     note: ''
   });
 
-  const [loading, setLoading] = useState(true);     // 전체 로딩 상태
-  const [saved, setSaved] = useState(false);        // 저장 완료 여부
+  const [loading, setLoading] = useState(true);       // 전체 로딩 상태
+  const [saved, setSaved] = useState(false);          // 저장 완료 여부
   const [authorized, setAuthorized] = useState(true); // 인증 여부
 
   // 🔐 인증 및 데이터 불러오기
   useEffect(() => {
     async function fetchData() {
-      const isAuth = await checkAuthWithToken(userId); // 인증 함수 실행
+      const isAuth = await checkAuthWithToken(userId); // ownerToken 유효성 검사
+
       if (!isAuth) {
-        setAuthorized(false);
+        // ⛔ 인증 실패 → 안내 메시지 또는 리디렉션 처리
+        setAuthorized(false); // 인증 실패 상태로 표시
+        // navigate('/unauthorized'); // 👉 이걸로 리디렉션도 가능 (필요 시 주석 해제)
         return;
       }
 
-      const docRef = doc(db, 'records', userId);
-      const snap = await getDoc(docRef);
+      const docRef = doc(db, 'records', userId);       // Firestore의 해당 UUID 문서 참조
+      const snap = await getDoc(docRef);               // 문서 가져오기
 
       if (snap.exists() && snap.data().ticketData) {
-        setForm(snap.data().ticketData);
+        setForm(snap.data().ticketData);               // 문서 안의 ticketData를 상태에 반영
       }
 
-      setLoading(false);
+      setLoading(false); // 데이터 불러오기 완료
     }
 
-    if (userId) fetchData();
-  }, [userId]);
+    if (userId) fetchData(); // userId가 존재할 경우에만 실행
+  }, [userId, navigate]);
 
   // ✍️ 입력 핸들러
   const handleChange = (e) => {
@@ -58,7 +62,7 @@ export default function TicketPage() {
     setSaved(true);
   };
 
-  // ⛔ 인증 실패 시 메시지
+  // ⛔ 인증 실패 시 메시지 표시
   if (!authorized) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl">

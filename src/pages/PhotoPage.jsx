@@ -1,27 +1,30 @@
 // React 훅, 라우터, 인증 유틸 import
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import checkAuthWithToken from '../utils/checkAuthWithToken';
+import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 유틸 함수 import
 
 export default function PhotoPage() {
   const { userId } = useParams(); // URL 경로에서 UUID 추출 (ex: /photo/1234 → userId = 1234)
 
-  const [images, setImages] = useState([]);            // 업로드된 이미지들을 저장하는 상태
+  const [images, setImages] = useState([]);             // 업로드된 이미지들을 저장하는 상태
   const [loading, setLoading] = useState(true);         // 전체 로딩 상태
   const [authorized, setAuthorized] = useState(true);   // 인증 성공 여부
 
   // 🔐 인증 확인 및 localStorage 이미지 로드
   useEffect(() => {
     async function init() {
-      const isAuth = await checkAuthWithToken(userId); // 인증 로직 실행
+      const isAuth = await checkAuthWithToken(userId); // ✅ ownerToken이 존재하고 유효한지 확인
+
       if (!isAuth) {
+        // ⛔ 인증 실패 시 안내 메시지 출력
         setAuthorized(false);
         return;
       }
 
-      const saved = localStorage.getItem(`photoList-${userId}`);
+      // ✅ 인증 통과 시 localStorage에서 사진 목록 불러오기
+      const saved = localStorage.getItem(`photoList-${userId}`); // userId 기반 저장 키
       if (saved) {
-        setImages(JSON.parse(saved)); // 문자열을 배열로 변환
+        setImages(JSON.parse(saved)); // 문자열을 배열로 복원
       }
 
       setLoading(false); // 로딩 완료
@@ -36,12 +39,15 @@ export default function PhotoPage() {
 
     files.forEach((file) => {
       const reader = new FileReader();
+
       reader.onload = () => {
-        const base64 = reader.result;
-        const updated = [...images, base64]; // 기존 이미지 + 새 이미지
+        const base64 = reader.result; // base64로 인코딩된 이미지
+        const updated = [...images, base64]; // 기존 이미지 배열에 추가
+
         setImages(updated); // 상태 업데이트
-        localStorage.setItem(`photoList-${userId}`, JSON.stringify(updated)); // localStorage 저장
+        localStorage.setItem(`photoList-${userId}`, JSON.stringify(updated)); // localStorage에 저장
       };
+
       reader.readAsDataURL(file); // 파일을 base64로 변환
     });
   };
@@ -60,7 +66,7 @@ export default function PhotoPage() {
     return <div className="p-4 text-white">불러오는 중...</div>;
   }
 
-  // ✅ UI 렌더링
+  // ✅ 사진첩 UI 렌더링
   return (
     <div className="p-6 max-w-md mx-auto text-white">
       <h2 className="text-2xl font-bold mb-4 text-center">📸 사진첩</h2>

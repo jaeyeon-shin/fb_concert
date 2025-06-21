@@ -1,38 +1,25 @@
 // src/utils/checkAuthWithToken.js
-import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
-/**
- * ownerToken을 Firestore에서 가져와 localStorage에 저장하고,
- * 접속자가 해당 토큰을 가진 경우에만 true 반환
- * 그렇지 않으면 false 반환하여 접근을 제한함
- */
 export default async function checkAuthWithToken(userId) {
-  try {
-    // localStorage에 이미 token이 있는지 확인
-    const savedToken = localStorage.getItem(`token-${userId}`);
+  const sessionToken = sessionStorage.getItem(`token-${userId}`); // 세션 저장된 토큰 불러오기
 
-    if (savedToken) {
-      // ✅ 이미 1회 접속한 적이 있음 → 접근 허용
-      return true;
-    }
+  // Firestore에서 해당 userId의 ownerToken 가져오기
+  const docRef = doc(db, 'records', userId);
+  const snap = await getDoc(docRef);
 
-    // 🔄 Firestore에서 토큰 불러오기
-    const docRef = doc(db, 'records', userId);
-    const snap = await getDoc(docRef);
+  if (!snap.exists()) return false;
 
-    if (snap.exists() && snap.data().ownerToken) {
-      const token = snap.data().ownerToken;
+  const firestoreToken = snap.data().ownerToken;
+  if (!firestoreToken) return false;
 
-      // 📥 처음 접속한 경우, localStorage에 저장하여 재접속 차단 기준 마련
-      localStorage.setItem(`token-${userId}`, token);
-      return true;
-    }
-
-    // ❌ 문서가 없거나 토큰이 없음
-    return false;
-  } catch (err) {
-    console.error('인증 검사 중 오류 발생:', err);
-    return false;
+  // 세션 토큰이 이미 존재하고 일치하면 통과
+  if (sessionToken && sessionToken === firestoreToken) {
+    return true;
   }
+
+  // 세션에 토큰이 없을 경우, Firestore의 토큰을 저장 (최초 인증 성공 시)
+  sessionStorage.setItem(`token-${userId}`, firestoreToken);
+  return true;
 }
