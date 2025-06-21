@@ -7,6 +7,8 @@ import Button from "../components/Button"; // 공통 버튼 컴포넌트
 import photoIcon from "../assets/icons/photo.png"; // 버튼용 아이콘 이미지
 import ticketIcon from "../assets/icons/ticket.png";
 import musicIcon from "../assets/icons/music.png";
+import { generateAndSaveOwnerToken } from '../scripts/generateTokenAndSave';
+
 
 // 메인 컴포넌트: HomePage
 export default function HomePage() {
@@ -64,6 +66,13 @@ export default function HomePage() {
       <Button icon={ticketIcon} label="TICKET" onClick={() => navigate(`/ticket/${userId}`)} />
       <Button icon={photoIcon} label="PHOTO" onClick={() => navigate(`/photo/${userId}`)} />
       <Button icon={musicIcon} label="SETLIST" onClick={() => navigate(`/setlist/${userId}`)} />
+      {/* 👇 개발 중에만 사용하는 토큰 발급 버튼 */}
+      <button
+        onClick={() => generateAndSaveOwnerToken(userId)}
+        className="mt-4 px-3 py-1 bg-red-600 text-white text-sm rounded"
+      >
+        🔑 ownerToken 발급하기
+      </button>
     </div>
   );
 }
