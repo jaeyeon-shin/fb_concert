@@ -1,18 +1,17 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "../pages/Home";
-import Photo from "../pages/Photo";
-import Ticket from "../pages/Ticket";
-import Setlist from "../pages/Setlist";
+// src/routes/Router.jsx
+import { Routes, Route } from "react-router-dom";
+import HomePage from "../pages/HomePage";
+import TicketPage from "../pages/TicketPage";
+import PhotoPage from "../pages/PhotoPage";
+import SetlistPage from "../pages/SetlistPage";
 
-export default function RouterConfig() {
+export default function Router() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/home/:userId" element={<Home />} />
-        <Route path="/photo/:userId" element={<Photo />} />
-        <Route path="/ticket/:userId" element={<Ticket />} />
-        <Route path="/setlist/:userId" element={<Setlist />} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/u/:uuid" element={<HomePage />} />
+      <Route path="/ticket" element={<TicketPage />} />
+      <Route path="/photo" element={<PhotoPage />} />
+      <Route path="/setlist" element={<SetlistPage />} />
+    </Routes>
   );
 }

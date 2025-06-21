@@ -1,3 +1,4 @@
+// App.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import TicketPage from './pages/TicketPage';
@@ -8,7 +9,7 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/u/:userId" element={<HomePage />} />
         <Route path="/ticket" element={<TicketPage />} />
         <Route path="/photo" element={<PhotoPage />} />
         <Route path="/setlist" element={<SetlistPage />} />

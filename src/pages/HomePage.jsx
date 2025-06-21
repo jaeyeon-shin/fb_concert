@@ -1,75 +1,61 @@
-import { useNavigate } from 'react-router-dom';
-import useQueryParam from '../utils/useQueryParam';
-import { useEffect, useState } from 'react';
-import { db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+// HomePage.jsx
+import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
+import Button from "../components/Button";
+import photoIcon from "../assets/icons/photo.png";
+import ticketIcon from "../assets/icons/ticket.png";
+import musicIcon from "../assets/icons/music.png";
 
 export default function HomePage() {
+  const { userId } = useParams();
   const navigate = useNavigate();
-  const nfcId = useQueryParam('id');
 
-  const [bgImage, setBgImage] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [bgImageUrl, setBgImageUrl] = useState("");
+  const [isAuthorized, setIsAuthorized] = useState(true);
 
   useEffect(() => {
-    async function fetchBackground() {
+    const fetchData = async () => {
       try {
-        const docRef = doc(db, 'records', nfcId);
+        const docRef = doc(db, "records", userId);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setBgImage(data.bgImageUrl);
+          console.log("✅ Firestore 데이터:", data);
+          setBgImageUrl(data.bgImageUrl || "");
         } else {
-          console.warn('해당 NFC ID에 대한 배경 정보가 없습니다.');
-          setBgImage('/bg/default.jpg'); // 기본 배경으로 대체 가능
+          console.log("❌ 해당 userId로 등록된 문서가 없습니다.");
+          setIsAuthorized(false);
         }
-      } catch (err) {
-        console.error('Firestore 에러:', err);
-        setBgImage('/bg/default.jpg');
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        console.error("Firestore 요청 오류:", error);
+        setIsAuthorized(false);
       }
+    };
+
+    if (userId) {
+      fetchData();
     }
+  }, [userId]);
 
-    if (nfcId) fetchBackground();
-  }, [nfcId]);
-
-  if (loading) {
+  if (!isAuthorized) {
     return (
-      <div className="w-screen h-screen flex justify-center items-center bg-black text-white">
-        불러오는 중...
+      <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl">
+        ⚠️ 이 NFC 칩은 등록되지 않았습니다.
       </div>
     );
   }
 
   return (
     <div
-      className="w-screen h-screen bg-cover bg-center flex flex-col justify-center items-center text-white"
-      style={{ backgroundImage: `url(${bgImage})` }}
+      className="min-h-screen bg-cover bg-center flex flex-col items-center justify-center space-y-10"
+      style={{ backgroundImage: `url(${bgImageUrl})` }}
     >
-      <h1 className="text-2xl font-bold mb-6">Welcome!</h1>
-
-      <div className="space-y-4">
-        <button
-          className="px-6 py-3 bg-white/80 text-black rounded-xl"
-          onClick={() => navigate(`/ticket?id=${nfcId}`)}
-        >
-          🎫 티켓
-        </button>
-        <button
-          className="px-6 py-3 bg-white/80 text-black rounded-xl"
-          onClick={() => navigate(`/photo?id=${nfcId}`)}
-        >
-          🖼️ 포토
-        </button>
-        <button
-          className="px-6 py-3 bg-white/80 text-black rounded-xl"
-          onClick={() => navigate(`/setlist?id=${nfcId}`)}
-        >
-          🎵 셋리스트
-        </button>
-      </div>
+      <Button icon={ticketIcon} label="TICKET" onClick={() => navigate("/ticket")} />
+      <Button icon={photoIcon} label="PHOTO" onClick={() => navigate("/photo")} />
+      <Button icon={musicIcon} label="SETLIST" onClick={() => navigate("/setlist")} />
     </div>
   );
 }
