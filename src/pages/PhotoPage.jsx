@@ -1,17 +1,31 @@
-// React 훅과 라우터 기능 import
+// ✅ React 훅과 라우터 기능, 인증 함수 import
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import checkAuth from '../utils/checkAuth';
 
 export default function PhotoPage() {
   const { userId } = useParams(); // URL 경로에서 UUID 추출 (ex: /photo/1234 → userId = 1234)
   const [images, setImages] = useState([]); // 업로드된 이미지들을 저장하는 배열 상태
+  const [authorized, setAuthorized] = useState(true); // 접근 권한 여부 상태
+  const [loading, setLoading] = useState(true); // 로딩 상태
 
-  // 🔄 페이지 로드 시 localStorage에 저장된 이미지들을 불러오기
+  // 🔒 인증 및 이미지 불러오기
   useEffect(() => {
-    const saved = localStorage.getItem(`photoList-${userId}`); // 각 UUID마다 저장 공간 분리
-    if (saved) {
-      setImages(JSON.parse(saved)); // 문자열 → 배열로 복원
+    async function fetchData() {
+      const isAuth = await checkAuth(userId); // 인증 확인
+      if (!isAuth) {
+        setAuthorized(false); // 인증 실패 시 접근 차단
+        return;
+      }
+
+      const saved = localStorage.getItem(`photoList-${userId}`); // 각 UUID마다 저장 공간 분리
+      if (saved) {
+        setImages(JSON.parse(saved)); // 문자열 → 배열로 복원
+      }
+      setLoading(false); // 로딩 완료
     }
+
+    if (userId) fetchData(); // userId가 있을 경우에만 실행
   }, [userId]);
 
   // 📤 이미지 업로드 핸들러
@@ -30,6 +44,18 @@ export default function PhotoPage() {
       reader.readAsDataURL(file); // 파일을 base64로 변환
     });
   };
+
+  // 🔄 로딩 중일 때 메시지 출력
+  if (loading) return <div className="p-4 text-white">불러오는 중...</div>;
+
+  // ❌ 인증 실패 시 메시지 출력
+  if (!authorized) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl">
+        ⚠️ 이 NFC 칩은 등록되지 않았습니다.
+      </div>
+    );
+  }
 
   // 🖼 렌더링 영역
   return (

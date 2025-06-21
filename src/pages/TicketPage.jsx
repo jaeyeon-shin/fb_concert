@@ -1,8 +1,11 @@
+// src/pages/TicketPage.jsx
+
 // React 훅과 Firebase Firestore 관련 함수, 라우터 훅 import
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useParams } from 'react-router-dom';
+import checkAuth from '../utils/checkAuth'; // 🔐 인증 유틸 함수 import
 
 export default function TicketPage() {
   const { userId } = useParams(); // URL 경로에서 userId(UUID) 추출
@@ -15,14 +18,22 @@ export default function TicketPage() {
     note: ''   // 메모
   });
 
-  const [loading, setLoading] = useState(true);   // 데이터 로딩 상태
-  const [saved, setSaved] = useState(false);      // 저장 완료 여부
+  const [loading, setLoading] = useState(true);      // 데이터 로딩 상태
+  const [saved, setSaved] = useState(false);         // 저장 완료 여부
+  const [authorized, setAuthorized] = useState(true); // 🔐 인증 성공 여부
 
-  // 📥 Firestore에서 기존 티켓 데이터 불러오기
+  // 📥 Firestore에서 기존 티켓 데이터 불러오기 + 🔐 토큰 인증 확인
   useEffect(() => {
     async function fetchData() {
-      const docRef = doc(db, 'records', userId);     // Firestore의 'records' 컬렉션에서 해당 UUID 문서 참조
-      const snap = await getDoc(docRef);             // 문서 스냅샷 가져오기
+      const isAuth = await checkAuth(userId); // 🔐 checkAuth에서 토큰 확인
+
+      if (!isAuth) {
+        setAuthorized(false); // 인증 실패 시 접근 제한
+        return;
+      }
+
+      const docRef = doc(db, 'records', userId); // Firestore의 'records' 컬렉션에서 해당 UUID 문서 참조
+      const snap = await getDoc(docRef);         // 문서 스냅샷 가져오기
 
       // 데이터가 존재하고 ticketData가 있으면 상태에 반영
       if (snap.exists() && snap.data().ticketData) {
@@ -34,6 +45,15 @@ export default function TicketPage() {
 
     if (userId) fetchData(); // userId가 있을 경우에만 실행
   }, [userId]);
+
+  // 🔒 인증되지 않은 경우 접근 차단 메시지 출력
+  if (!authorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white bg-black text-xl">
+        ⚠️ 인증되지 않은 접근입니다. 반드시 NFC 태깅을 통해 접속해 주세요.
+      </div>
+    );
+  }
 
   // ✍️ 입력값 변경 시 상태 업데이트
   const handleChange = (e) => {
