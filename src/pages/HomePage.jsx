@@ -53,9 +53,10 @@ export default function HomePage() {
       className="min-h-screen bg-cover bg-center flex flex-col items-center justify-center space-y-10"
       style={{ backgroundImage: `url(${bgImageUrl})` }}
     >
-      <Button icon={ticketIcon} label="TICKET" onClick={() => navigate("/ticket")} />
-      <Button icon={photoIcon} label="PHOTO" onClick={() => navigate("/photo")} />
-      <Button icon={musicIcon} label="SETLIST" onClick={() => navigate("/setlist")} />
+      <Button icon={ticketIcon} label="TICKET" onClick={() => navigate(`/ticket/${userId}`)} />
+      <Button icon={photoIcon} label="PHOTO" onClick={() => navigate(`/photo/${userId}`)} />
+      <Button icon={musicIcon} label="SETLIST" onClick={() => navigate(`/setlist/${userId}`)} />
+
     </div>
   );
 }

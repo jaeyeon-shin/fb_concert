@@ -1,39 +1,36 @@
+// src/pages/PhotoPage.jsx
 import { useEffect, useState } from 'react';
-import useQueryParam from '../utils/useQueryParam';
+import { useParams } from 'react-router-dom';
 
 export default function PhotoPage() {
-  const nfcId = useQueryParam('id');
+  const { userId } = useParams(); // URL에서 userId 추출
   const [images, setImages] = useState([]);
 
-  // localStorage에서 불러오기
+  // localStorage에서 이미지 불러오기
   useEffect(() => {
-    const saved = localStorage.getItem(`photoList-${nfcId}`);
+    const saved = localStorage.getItem(`photoList-${userId}`);
     if (saved) {
       setImages(JSON.parse(saved));
     }
-  }, [nfcId]);
+  }, [userId]);
 
   const handleChange = (e) => {
     const files = Array.from(e.target.files);
-    const newImages = [];
 
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
         const base64 = reader.result;
-        newImages.push(base64);
-
-        // 이미지 하나 읽을 때마다 상태 업데이트
-        const updated = [...images, ...newImages];
+        const updated = [...images, base64];
         setImages(updated);
-        localStorage.setItem(`photoList-${nfcId}`, JSON.stringify(updated));
+        localStorage.setItem(`photoList-${userId}`, JSON.stringify(updated));
       };
       reader.readAsDataURL(file);
     });
   };
 
   return (
-    <div className="p-6 max-w-md mx-auto">
+    <div className="p-6 max-w-md mx-auto text-white">
       <h2 className="text-2xl font-bold mb-4 text-center">📸 사진첩</h2>
 
       <input
@@ -45,7 +42,7 @@ export default function PhotoPage() {
       />
 
       {images.length === 0 ? (
-        <p className="text-center text-gray-500">아직 업로드한 사진이 없습니다.</p>
+        <p className="text-center text-gray-400">아직 업로드한 사진이 없습니다.</p>
       ) : (
         <div className="grid grid-cols-2 gap-2">
           {images.map((src, i) => (

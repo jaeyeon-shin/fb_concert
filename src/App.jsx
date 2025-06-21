@@ -10,9 +10,9 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/u/:userId" element={<HomePage />} />
-        <Route path="/ticket" element={<TicketPage />} />
-        <Route path="/photo" element={<PhotoPage />} />
-        <Route path="/setlist" element={<SetlistPage />} />
+        <Route path="/ticket/:userId" element={<TicketPage />} />
+        <Route path="/photo/:userId" element={<PhotoPage />} />
+        <Route path="/setlist/:userId" element={<SetlistPage />} />
       </Routes>
     </Router>
   );
