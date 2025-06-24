@@ -23,17 +23,19 @@ export default function HomePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // ⭐️ 1. ownerToken 존재 여부 확인 → 없으면 자동 발급 후 localStorage에 저장
-        let token = localStorage.getItem(`ownerToken-${userId}`);
-        if (!token) {
-          token = await generateAndSaveOwnerToken(userId); // Firestore에 저장 + token 반환
-          localStorage.setItem(`ownerToken-${userId}`, token); // 브라우저에 저장
+        // 🔄 ownerToken을 무조건 다시 생성 및 저장 (태그 시마다 갱신)
+        const newToken = await generateAndSaveOwnerToken(userId);
+        if (newToken) {
+          localStorage.setItem(`ownerToken-${userId}`, newToken); // 브라우저에도 저장
+          alert("📌 ownerToken이 갱신되었습니다."); // 모바일 환경 피드백
+        } else {
+          alert("⚠️ 토큰 발급 실패");
         }
 
         // 🔐 2. 인증 토큰 유효성 확인
         const isAuth = await checkAuthWithToken(userId);
         if (!isAuth) {
-          console.warn("🚫 인증 실패: 재접속 차단");
+          alert("🚫 인증 실패: 재접속 차단");
           setIsAuthorized(false);
           return;
         }
@@ -44,16 +46,14 @@ export default function HomePage() {
 
         if (docSnap.exists()) {
           const data = docSnap.data(); // 문서가 있으면 데이터 꺼냄
-          console.log("✅ Firestore 데이터:", data);
           setBgImageUrl(data.bgImageUrl || ""); // 배경 이미지 URL 세팅
         } else {
-          // 문서가 없을 경우 접근 차단 처리
-          console.log("❌ 해당 userId로 등록된 문서가 없습니다.");
+          alert("❌ Firestore에 문서가 없습니다.");
           setIsAuthorized(false);
         }
       } catch (error) {
         // Firestore 요청 실패 시 처리
-        console.error("Firestore 요청 오류:", error);
+        alert("🔥 오류 발생: " + error.message);
         setIsAuthorized(false);
       } finally {
         setLoading(false); // 인증 및 로딩 완료
@@ -94,7 +94,10 @@ export default function HomePage() {
 
       {/* 👇 개발 중에만 사용하는 토큰 발급 버튼 (운영 배포 시 삭제 가능) */}
       <button
-        onClick={() => generateAndSaveOwnerToken(userId)}
+        onClick={async () => {
+          const token = await generateAndSaveOwnerToken(userId);
+          alert(`🔑 토큰 수동 발급 완료: ${token}`);
+        }}
         className="mt-4 px-3 py-1 bg-red-600 text-white text-sm rounded"
       >
         🔑 ownerToken 발급하기
