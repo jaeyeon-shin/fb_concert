@@ -16,5 +16,6 @@ export async function generateAndSaveOwnerToken(nfcId) {
   );
 
   console.log(`✅ ${nfcId}에 토큰 저장 완료: ${ownerToken}`);
-  return ownerToken;
+
+  return ownerToken; // 🔥🔥 반드시 추가!!
 }
