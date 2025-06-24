@@ -1,8 +1,15 @@
 // src/utils/checkAuthWithToken.js
+
 import { db } from '../firebase';
 import { doc, getDoc, updateDoc, deleteField } from 'firebase/firestore';
 
-export default async function checkAuthWithToken(userId) {
+/**
+ * ownerToken 인증 확인 함수
+ * @param {string} userId - 유저 ID (ex: NFC UUID)
+ * @param {string|null} overrideToken - (옵션) 직접 전달받은 토큰 (localStorage 대신 사용됨)
+ * @returns {Promise<boolean>} - 인증 성공 여부 반환
+ */
+export default async function checkAuthWithToken(userId, overrideToken = null) {
   // 1️⃣ Firestore에서 해당 유저의 문서 가져오기
   const docRef = doc(db, 'records', userId);
   const snap = await getDoc(docRef);
@@ -10,12 +17,14 @@ export default async function checkAuthWithToken(userId) {
   if (!snap.exists()) return false; // 문서가 없으면 인증 실패
 
   const firestoreToken = snap.data().ownerToken;
-  const localToken = localStorage.getItem(`authToken-${userId}`);
 
-  // 2️⃣ localStorage에 토큰이 없거나 일치하지 않으면 인증 실패
+  // 2️⃣ 토큰 우선순위: 직접 전달된 토큰 > localStorage에서 읽은 토큰
+  const localToken = overrideToken || localStorage.getItem(`authToken-${userId}`);
+
+  // 3️⃣ 토큰이 없거나 일치하지 않으면 인증 실패
   if (!localToken || localToken !== firestoreToken) return false;
 
-  // 3️⃣ 인증 성공 → Firestore에서 ownerToken 필드 제거
+  // 4️⃣ 인증 성공 → Firestore에서 ownerToken 필드 제거
   await updateDoc(docRef, {
     ownerToken: deleteField()
   });
