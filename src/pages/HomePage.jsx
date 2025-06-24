@@ -8,7 +8,7 @@ import photoIcon from "../assets/icons/photo.png"; // 버튼용 아이콘 이미
 import ticketIcon from "../assets/icons/ticket.png";
 import musicIcon from "../assets/icons/music.png";
 import { generateAndSaveOwnerToken } from '../scripts/generateTokenAndSave';
-
+import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 로직 import 추가
 
 // 메인 컴포넌트: HomePage
 export default function HomePage() {
@@ -17,11 +17,19 @@ export default function HomePage() {
 
   const [bgImageUrl, setBgImageUrl] = useState(""); // 배경 이미지 URL 상태
   const [isAuthorized, setIsAuthorized] = useState(true); // 접근 허용 여부 (UUID 유효성)
+  const [loading, setLoading] = useState(true); // 🔄 인증 및 데이터 로딩 여부
 
-  // Firestore에서 UUID에 해당하는 문서 데이터를 불러옴
+  // 🔐 인증 + Firestore에서 UUID에 해당하는 문서 데이터를 불러옴
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const isAuth = await checkAuthWithToken(userId); // ownerToken 인증 확인
+        if (!isAuth) {
+          console.warn("🚫 인증 실패: 재접속 차단");
+          setIsAuthorized(false);
+          return;
+        }
+
         const docRef = doc(db, "records", userId); // "records" 컬렉션에서 userId 문서를 참조
         const docSnap = await getDoc(docRef); // 문서 내용 불러오기
 
@@ -38,6 +46,8 @@ export default function HomePage() {
         // Firestore 요청 실패 시 처리
         console.error("Firestore 요청 오류:", error);
         setIsAuthorized(false);
+      } finally {
+        setLoading(false); // 인증 및 로딩 완료
       }
     };
 
@@ -46,11 +56,17 @@ export default function HomePage() {
     }
   }, [userId]);
 
-  // 🔐 접근 차단 시 사용자에게 안내 메시지 출력
+  // ⏳ 인증/데이터 로딩 중
+  if (loading) {
+    return <div className="p-4 text-white">로딩 중...</div>;
+  }
+
+  // ⛔ 인증 실패 또는 미등록 UUID
   if (!isAuthorized) {
     return (
-      <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl">
-        ⚠️ 이 NFC 칩은 등록되지 않았습니다.
+      <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl text-center px-4">
+        ⚠️ 재접속이 허용되지 않거나 등록되지 않은 NFC입니다. <br />
+        NFC를 다시 태그해주세요.
       </div>
     );
   }
@@ -66,6 +82,7 @@ export default function HomePage() {
       <Button icon={ticketIcon} label="TICKET" onClick={() => navigate(`/ticket/${userId}`)} />
       <Button icon={photoIcon} label="PHOTO" onClick={() => navigate(`/photo/${userId}`)} />
       <Button icon={musicIcon} label="SETLIST" onClick={() => navigate(`/setlist/${userId}`)} />
+      
       {/* 👇 개발 중에만 사용하는 토큰 발급 버튼 */}
       <button
         onClick={() => generateAndSaveOwnerToken(userId)}
