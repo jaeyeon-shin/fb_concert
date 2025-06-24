@@ -15,13 +15,25 @@ export default function SetlistPage() {
   // 🔐 인증 확인 및 셋리스트 데이터 로드
   useEffect(() => {
     async function fetchData() {
-      const isAuth = await checkAuthWithToken(userId); // ✅ 현재 브라우저에 저장된 ownerToken이 Firestore와 일치하는지 확인
-      if (!isAuth) {
-        setAuthorized(false); // 인증 실패 시 렌더링 분기 처리
+      // ✅ 1. localStorage에서 인증 토큰 꺼내기
+      const localToken = localStorage.getItem(`authToken-${userId}`);
+
+      // ⛔ 2. 토큰이 없으면 인증 실패
+      if (!localToken) {
+        setAuthorized(false);
+        setLoading(false);
         return;
       }
 
-      // ✅ 인증 성공 시 Firestore에서 셋리스트 데이터 불러오기
+      // 🔐 3. 인증 함수에 토큰 직접 전달
+      const isAuth = await checkAuthWithToken(userId, localToken);
+      if (!isAuth) {
+        setAuthorized(false);
+        setLoading(false);
+        return;
+      }
+
+      // ✅ 4. 인증 성공 → Firestore에서 셋리스트 데이터 불러오기
       const docRef = doc(db, 'records', userId); // Firestore에서 해당 문서 참조
       const snap = await getDoc(docRef);         // 문서 가져오기
 
@@ -38,8 +50,9 @@ export default function SetlistPage() {
   // ⛔ 인증 실패 시 메시지
   if (!authorized) {
     return (
-      <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl">
-        ⚠️ 재접속이 허용되지 않습니다. NFC를 다시 태그해주세요.
+      <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl text-center px-4">
+        ⚠️ 재접속이 허용되지 않거나 등록되지 않은 NFC입니다. <br />
+        다시 태그해주세요.
       </div>
     );
   }

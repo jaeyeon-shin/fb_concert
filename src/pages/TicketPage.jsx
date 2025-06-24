@@ -23,15 +23,28 @@ export default function TicketPage() {
   // 🔐 인증 및 데이터 불러오기
   useEffect(() => {
     async function fetchData() {
-      const isAuth = await checkAuthWithToken(userId); // ownerToken 유효성 검사
+      // ✅ 1. localStorage에서 인증 토큰 꺼내기
+      const localToken = localStorage.getItem(`authToken-${userId}`);
+
+      // ⛔ 2. 토큰이 없으면 인증 실패
+      if (!localToken) {
+        setAuthorized(false);
+        setLoading(false);
+        return;
+      }
+
+      // 🔐 3. 인증 함수에 토큰 직접 전달
+      const isAuth = await checkAuthWithToken(userId, localToken);
 
       if (!isAuth) {
         // ⛔ 인증 실패 → 안내 메시지 또는 리디렉션 처리
         setAuthorized(false); // 인증 실패 상태로 표시
         // navigate('/unauthorized'); // 👉 이걸로 리디렉션도 가능 (필요 시 주석 해제)
+        setLoading(false);
         return;
       }
 
+      // ✅ 4. 인증 성공 시 Firestore에서 기존 티켓 데이터 불러오기
       const docRef = doc(db, 'records', userId);       // Firestore의 해당 UUID 문서 참조
       const snap = await getDoc(docRef);               // 문서 가져오기
 
@@ -65,8 +78,9 @@ export default function TicketPage() {
   // ⛔ 인증 실패 시 메시지 표시
   if (!authorized) {
     return (
-      <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl">
-        ⚠️ 재접속이 허용되지 않습니다. NFC를 다시 태그해주세요.
+      <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl text-center px-4">
+        ⚠️ 재접속이 허용되지 않거나 등록되지 않은 NFC입니다. <br />
+        다시 태그해주세요.
       </div>
     );
   }

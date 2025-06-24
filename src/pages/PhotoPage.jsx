@@ -13,21 +13,32 @@ export default function PhotoPage() {
   // 🔐 인증 확인 및 localStorage 이미지 로드
   useEffect(() => {
     async function init() {
-      const isAuth = await checkAuthWithToken(userId); // ✅ ownerToken이 존재하고 유효한지 확인
+      // ✅ 로컬 스토리지에서 인증 토큰 가져오기
+      const localToken = localStorage.getItem(`authToken-${userId}`);
 
-      if (!isAuth) {
-        // ⛔ 인증 실패 시 안내 메시지 출력
+      // ⛔ 토큰이 없으면 인증 실패
+      if (!localToken) {
         setAuthorized(false);
+        setLoading(false);
         return;
       }
 
-      // ✅ 인증 통과 시 localStorage에서 사진 목록 불러오기
-      const saved = localStorage.getItem(`photoList-${userId}`); // userId 기반 저장 키
-      if (saved) {
-        setImages(JSON.parse(saved)); // 문자열을 배열로 복원
+      // 🔐 인증 유틸에 토큰을 직접 넘김 (로컬 기반)
+      const isAuth = await checkAuthWithToken(userId, localToken);
+
+      if (!isAuth) {
+        setAuthorized(false);
+        setLoading(false);
+        return;
       }
 
-      setLoading(false); // 로딩 완료
+      // ✅ 인증 성공 시 로컬 저장소에서 이미지 로드
+      const saved = localStorage.getItem(`photoList-${userId}`);
+      if (saved) {
+        setImages(JSON.parse(saved));
+      }
+
+      setLoading(false);
     }
 
     if (userId) init(); // userId가 있을 때만 실행
@@ -55,8 +66,9 @@ export default function PhotoPage() {
   // ⛔ 인증 실패 시 메시지
   if (!authorized) {
     return (
-      <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl">
-        ⚠️ 재접속이 허용되지 않습니다. NFC를 다시 태그해주세요.
+      <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl text-center px-4">
+        ⚠️ 재접속이 허용되지 않거나 등록되지 않은 NFC입니다. <br />
+        다시 태그해주세요.
       </div>
     );
   }

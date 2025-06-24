@@ -9,12 +9,18 @@ import generateOwnerToken from '../utils/generateOwnerToken';
  */
 export async function generateAndSaveOwnerToken(nfcId) {
   try {
-    const newToken = generateOwnerToken();
+    const newToken = generateOwnerToken(); // 1️⃣ 랜덤한 토큰 생성
 
     const docRef = doc(db, 'records', nfcId);
-    await setDoc(docRef, { ownerToken: newToken }, { merge: true }); // Firestore 덮어쓰기
 
-    localStorage.setItem(`ownerToken-${nfcId}`, newToken); // 브라우저에 저장
+    // 2️⃣ Firestore에 ownerToken 필드 저장 (병합 모드)
+    await setDoc(docRef, { ownerToken: newToken }, { merge: true });
+
+    // 3️⃣ 로컬 브라우저에도 저장 (checkAuthWithToken에서 읽기 위함)
+    localStorage.setItem(`ownerToken-${nfcId}`, newToken);  // 🔸 참고용 (선택)
+    localStorage.setItem(`authToken-${nfcId}`, newToken);   // ✅ 실제 인증용
+
+    // ✅ 디버깅 및 피드백용 로그 및 알림
     alert(`🔑 새 토큰 발급 완료: ${newToken}`);
     console.log(`✅ Firestore 토큰 갱신 완료 for ${nfcId}: ${newToken}`);
 

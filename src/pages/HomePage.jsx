@@ -23,8 +23,8 @@ export default function HomePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // ⭐️ 1. ownerToken을 무조건 재발급 (새로운 태그로 판단)
-        const newToken = await generateAndSaveOwnerToken(userId); // → Firestore에 저장됨
+        // ⭐️ 1. ownerToken 무조건 재발급 (NFC 태그마다 일회성 발급)
+        const newToken = await generateAndSaveOwnerToken(userId);
         if (!newToken) {
           alert("⚠️ 토큰 발급 실패");
           setIsAuthorized(false);
@@ -32,11 +32,12 @@ export default function HomePage() {
           return;
         }
 
-        // 📲 2. 발급한 토큰을 로컬에도 저장
-        localStorage.setItem(`authToken-${userId}`, newToken); // ✅ 인증용 저장소 (checkAuthWithToken에서 사용)
-        alert("📌 ownerToken이 발급되었습니다."); // 피드백용 알림
+        // ✅ 2. 인증용 토큰 로컬에 저장 (다른 페이지에서도 재사용 가능)
+        localStorage.setItem(`authToken-${userId}`, newToken);
 
-        // 🔐 3. 인증 검사 → 새로 발급한 토큰 전달
+        alert("📌 새 토큰이 발급되었습니다.");
+
+        // 🔐 3. 즉시 인증 검사 (checkAuthWithToken이 Firestore 토큰을 제거함)
         const isAuth = await checkAuthWithToken(userId, newToken);
         if (!isAuth) {
           alert("🚫 인증 실패: 재접속 차단");
@@ -44,36 +45,36 @@ export default function HomePage() {
           return;
         }
 
-        // 🔍 4. Firestore에서 배경 이미지 등 데이터 가져오기
+        // 🔍 4. Firestore에서 사용자 맞춤 데이터 가져오기
         const docRef = doc(db, "records", userId);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setBgImageUrl(data.bgImageUrl || ""); // 배경 이미지 URL 적용
+          setBgImageUrl(data.bgImageUrl || "");
         } else {
-          alert("❌ Firestore에 등록된 문서가 없습니다.");
+          alert("❌ 등록된 문서가 없습니다.");
           setIsAuthorized(false);
         }
       } catch (error) {
         alert("🔥 오류 발생: " + error.message);
         setIsAuthorized(false);
       } finally {
-        setLoading(false); // 로딩 상태 종료
+        setLoading(false); // 로딩 종료
       }
     };
 
     if (userId) {
-      fetchData(); // userId가 존재할 때만 실행
+      fetchData(); // NFC ID가 있을 때만 동작
     }
   }, [userId]);
 
-  // ⏳ 인증/데이터 로딩 중
+  // ⏳ 로딩 중
   if (loading) {
     return <div className="p-4 text-white">로딩 중...</div>;
   }
 
-  // ⛔ 인증 실패 또는 미등록 UUID
+  // ⛔ 인증 실패 시 안내
   if (!isAuthorized) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl text-center px-4">
@@ -83,24 +84,25 @@ export default function HomePage() {
     );
   }
 
-  // ✅ 접근 허용 시 사용자 맞춤 배경 + 3개의 버튼 렌더링
+  // ✅ 인증 성공 시 메인 콘텐츠 렌더링
   return (
     <div
       className="min-h-screen bg-cover bg-center flex flex-col items-center justify-center space-y-10"
-      // 배경 이미지로 Firestore에서 불러온 URL 적용
+      // 배경 이미지 적용
       style={{ backgroundImage: `url(${bgImageUrl})` }}
     >
-      {/* 3개의 버튼: 각각 페이지 이동 기능 포함 */}
+      {/* 3개의 버튼: 각각 세부 페이지로 이동 */}
       <Button icon={ticketIcon} label="TICKET" onClick={() => navigate(`/ticket/${userId}`)} />
       <Button icon={photoIcon} label="PHOTO" onClick={() => navigate(`/photo/${userId}`)} />
       <Button icon={musicIcon} label="SETLIST" onClick={() => navigate(`/setlist/${userId}`)} />
 
-      {/* 👇 개발 중에만 사용하는 토큰 수동 발급 버튼 (운영 배포 시 삭제 가능) */}
+      {/* 🔧 테스트용 수동 발급 버튼 */}
       <button
         onClick={async () => {
           const token = await generateAndSaveOwnerToken(userId);
           if (token) {
-            alert(`🔑 토큰 수동 발급 완료: ${token}`);
+            localStorage.setItem(`authToken-${userId}`, token); // 수동 발급 시도 시도도 저장
+            alert(`🔑 수동 토큰 발급 완료: ${token}`);
           } else {
             alert("❌ 토큰 수동 발급 실패");
           }

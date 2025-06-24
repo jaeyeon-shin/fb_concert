@@ -13,18 +13,17 @@ export default async function checkAuthWithToken(userId, overrideToken = null) {
   // 1️⃣ Firestore에서 해당 유저의 문서 가져오기
   const docRef = doc(db, 'records', userId);
   const snap = await getDoc(docRef);
-
-  if (!snap.exists()) return false; // 문서가 없으면 인증 실패
+  if (!snap.exists()) return false; // ❌ 문서 없으면 실패
 
   const firestoreToken = snap.data().ownerToken;
 
-  // 2️⃣ 토큰 우선순위: 직접 전달된 토큰 > localStorage에서 읽은 토큰
+  // 2️⃣ 인증 비교 대상: overrideToken > localStorage의 authToken
   const localToken = overrideToken || localStorage.getItem(`authToken-${userId}`);
 
   // 3️⃣ 토큰이 없거나 일치하지 않으면 인증 실패
   if (!localToken || localToken !== firestoreToken) return false;
 
-  // 4️⃣ 인증 성공 → Firestore에서 ownerToken 필드 제거
+  // 4️⃣ 인증 성공 → 재접속 방지를 위해 Firestore에서 토큰 삭제
   await updateDoc(docRef, {
     ownerToken: deleteField()
   });
