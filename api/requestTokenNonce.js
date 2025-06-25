@@ -7,7 +7,7 @@ import { randomUUID } from 'crypto';
 
 // ✅ 환경변수에서 JSON 형태의 서비스 계정 정보 불러오기
 // (FIREBASE_ADMIN_KEY_JSON은 문자열이므로 반드시 JSON.parse 필요)
-const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY_JSON);
+const serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_KEY);
 
 // ✅ Firebase Admin SDK 초기화 (재초기화 방지)
 if (!getApps().length) {
