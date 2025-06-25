@@ -1,18 +1,17 @@
 // 📁 /api/requestTokenNonce.js
 
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import { randomUUID } from 'crypto';
 
-// Firebase 초기화 (재초기화 방지)
-const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-};
+// 🔐 환경변수에서 서비스 계정 키 불러오기 (Vercel에 저장 필요)
+const serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_KEY || '{}');
 
+// Firebase Admin 초기화 (중복 방지)
 if (getApps().length === 0) {
-  initializeApp(firebaseConfig);
+  initializeApp({
+    credential: cert(serviceAccount),
+  });
 }
 
 const db = getFirestore();
@@ -34,7 +33,11 @@ export default async function handler(req, res) {
 
   try {
     const nonce = randomUUID(); // 고유 nonce 생성
-    await setDoc(doc(db, 'nonces', nfcId), { nonce, createdAt: Date.now() });
+    await db.collection('nonces').doc(nfcId).set({
+      nonce,
+      createdAt: Date.now(),
+    });
+
     return res.status(200).json({ nonce });
   } catch (err) {
     console.error('🔥 nonce 저장 실패:', err);
