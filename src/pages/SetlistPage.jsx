@@ -1,50 +1,52 @@
-// React 훅, Firebase 함수, 라우터 훅, 인증 유틸 import
+// 📁 src/pages/SetlistPage.jsx
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 함수 import
+import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 유틸
 
 export default function SetlistPage() {
-  const { userId } = useParams(); // URL 경로에서 userId(UUID) 추출
+  const { userId } = useParams(); // URL 경로에서 UUID 추출 (ex: /setlist/04A2ED12361E90)
 
-  const [setlist, setSetlist] = useState([]);           // 셋리스트 배열 상태
-  const [loading, setLoading] = useState(true);         // 로딩 상태
-  const [authorized, setAuthorized] = useState(true);   // 인증 여부
+  const [setlist, setSetlist] = useState([]);         // 🎵 셋리스트 데이터
+  const [loading, setLoading] = useState(true);       // 🔄 로딩 여부
+  const [authorized, setAuthorized] = useState(true); // 🔐 인증 성공 여부
 
-  // 🔐 인증 확인 및 셋리스트 데이터 로드
+  // 🔐 인증 + 셋리스트 로딩
   useEffect(() => {
     async function fetchData() {
-      // ✅ 1. localStorage에서 인증 토큰 꺼내기
-      const localToken = localStorage.getItem(`authToken-${userId}`);
+      try {
+        // 1️⃣ 로컬 토큰 꺼내기 (HomePage에서 저장됨)
+        const localToken = localStorage.getItem(`authToken-${userId}`);
+        if (!localToken) {
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
 
-      // ⛔ 2. 토큰이 없으면 인증 실패
-      if (!localToken) {
+        // 2️⃣ 토큰 유효성 확인 (checkAuthWithToken에 토큰 직접 전달)
+        const isAuth = await checkAuthWithToken(userId, localToken);
+        if (!isAuth) {
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
+
+        // 3️⃣ 인증 통과 시 Firestore에서 setlist 로드
+        const docRef = doc(db, 'records', userId);
+        const snap = await getDoc(docRef);
+        if (snap.exists() && snap.data().setlist) {
+          setSetlist(snap.data().setlist);
+        }
+      } catch (err) {
+        console.error("❌ 인증 또는 데이터 로딩 오류:", err);
         setAuthorized(false);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      // 🔐 3. 인증 함수에 토큰 직접 전달
-      const isAuth = await checkAuthWithToken(userId, localToken);
-      if (!isAuth) {
-        setAuthorized(false);
-        setLoading(false);
-        return;
-      }
-
-      // ✅ 4. 인증 성공 → Firestore에서 셋리스트 데이터 불러오기
-      const docRef = doc(db, 'records', userId); // Firestore에서 해당 문서 참조
-      const snap = await getDoc(docRef);         // 문서 가져오기
-
-      if (snap.exists() && snap.data().setlist) {
-        setSetlist(snap.data().setlist);         // setlist 필드가 있으면 상태에 반영
-      }
-
-      setLoading(false); // 로딩 완료
     }
 
-    if (userId) fetchData(); // userId가 있을 때 실행
+    if (userId) fetchData();
   }, [userId]);
 
   // ⛔ 인증 실패 시 메시지
@@ -60,23 +62,21 @@ export default function SetlistPage() {
   // ⏳ 로딩 중일 때
   if (loading) return <div className="p-4 text-white">불러오는 중...</div>;
 
-  // ✅ 인증 성공 후 UI 렌더링
+  // ✅ 인증 성공 시 셋리스트 렌더링
   return (
     <div className="p-6 max-w-md mx-auto text-white">
       <h2 className="text-2xl font-bold mb-4 text-center">🎵 셋리스트</h2>
 
-      {/* 셋리스트가 없을 때 메시지 */}
       {setlist.length === 0 ? (
         <p className="text-center text-gray-400">등록된 셋리스트가 없습니다.</p>
       ) : (
-        // 셋리스트 항목 출력
         <ul className="space-y-2">
           {setlist.map((item, i) => (
             <li key={i}>
               <a
-                href={item.url}                     // YouTube 링크 등
-                target="_blank"                    // 새 탭에서 열기
-                rel="noopener noreferrer"         // 보안 옵션
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-blue-400 underline"
               >
                 {i + 1}. {item.title}

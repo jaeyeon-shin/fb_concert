@@ -2,12 +2,11 @@
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { useParams, useNavigate } from 'react-router-dom'; // 🔁 리디렉션 위해 useNavigate 추가
+import { useParams } from 'react-router-dom';
 import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 함수 import
 
 export default function TicketPage() {
-  const { userId } = useParams(); // URL 경로에서 userId(UUID) 추출
-  const navigate = useNavigate(); // 🔁 인증 실패 시 리디렉션에 사용
+  const { userId } = useParams(); // 🔍 URL 경로에서 UUID 추출
 
   const [form, setForm] = useState({
     title: '',
@@ -26,37 +25,35 @@ export default function TicketPage() {
       // ✅ 1. localStorage에서 인증 토큰 꺼내기
       const localToken = localStorage.getItem(`authToken-${userId}`);
 
-      // ⛔ 2. 토큰이 없으면 인증 실패
+      // ⛔ 2. 토큰이 없으면 인증 실패 처리
       if (!localToken) {
         setAuthorized(false);
         setLoading(false);
         return;
       }
 
-      // 🔐 3. 인증 함수에 토큰 직접 전달
+      // 🔐 3. Firestore 토큰과 일치하는지 검사
       const isAuth = await checkAuthWithToken(userId, localToken);
 
       if (!isAuth) {
-        // ⛔ 인증 실패 → 안내 메시지 또는 리디렉션 처리
-        setAuthorized(false); // 인증 실패 상태로 표시
-        // navigate('/unauthorized'); // 👉 이걸로 리디렉션도 가능 (필요 시 주석 해제)
+        setAuthorized(false);
         setLoading(false);
         return;
       }
 
       // ✅ 4. 인증 성공 시 Firestore에서 기존 티켓 데이터 불러오기
-      const docRef = doc(db, 'records', userId);       // Firestore의 해당 UUID 문서 참조
-      const snap = await getDoc(docRef);               // 문서 가져오기
+      const docRef = doc(db, 'records', userId);
+      const snap = await getDoc(docRef);
 
       if (snap.exists() && snap.data().ticketData) {
-        setForm(snap.data().ticketData);               // 문서 안의 ticketData를 상태에 반영
+        setForm(snap.data().ticketData);
       }
 
-      setLoading(false); // 데이터 불러오기 완료
+      setLoading(false);
     }
 
-    if (userId) fetchData(); // userId가 존재할 경우에만 실행
-  }, [userId, navigate]);
+    if (userId) fetchData();
+  }, [userId]);
 
   // ✍️ 입력 핸들러
   const handleChange = (e) => {
@@ -67,15 +64,11 @@ export default function TicketPage() {
   // 💾 저장 핸들러
   const handleSave = async () => {
     const docRef = doc(db, 'records', userId);
-    await setDoc(
-      docRef,
-      { ticketData: form },
-      { merge: true }
-    );
+    await setDoc(docRef, { ticketData: form }, { merge: true });
     setSaved(true);
   };
 
-  // ⛔ 인증 실패 시 메시지 표시
+  // ⛔ 인증 실패 시 메시지
   if (!authorized) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl text-center px-4">
@@ -90,7 +83,7 @@ export default function TicketPage() {
     return <div className="p-4 text-white">불러오는 중...</div>;
   }
 
-  // ✅ 티켓 입력 UI
+  // ✅ 인증 성공 시 티켓 작성 UI
   return (
     <div className="p-6 max-w-md mx-auto text-white">
       <h2 className="text-2xl font-bold mb-4">🎫 티켓 정보 입력</h2>
