@@ -18,44 +18,45 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
-  // 🔒 POST 방식만 허용
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
-
-  const { nfcId, nonce } = req.body;
-
-  // 🔍 입력 유효성 확인
-  if (!nfcId || !nonce) {
-    return res.status(400).json({ message: 'Missing nfcId or nonce' });
-  }
-
-  try {
-    // 🔐 해당 nonce 문서 가져오기
-    const docRef = db.collection('nonces').doc(nfcId);
-    const snap = await docRef.get();
-
-    // ⛔ 유효하지 않은 nonce → 거부
-    if (!snap.exists() || snap.data().nonce !== nonce) {
-      return res.status(403).json({ message: 'Invalid or expired nonce' });
+    if (req.method !== 'POST') {
+      return res.status(405).json({ message: 'Method not allowed' });
     }
-
-    // ✅ nonce 사용 후 삭제 (1회용 보장)
-    await docRef.delete();
-
-    // ✅ 토큰 새로 생성 (UUID 기반)
-    const newToken = randomUUID();
-
-    // ✅ Firestore의 records 문서에 토큰 저장 (merge 유지)
-    await db.collection('records').doc(nfcId).set(
-      { ownerToken: newToken },
-      { merge: true }
-    );
-
-    // 🎉 클라이언트로 토큰 반환
-    return res.status(200).json({ token: newToken });
-  } catch (err) {
-    console.error('❌ 토큰 발급 실패:', err);
-    return res.status(500).json({ message: 'Server error' });
+  
+    try {
+      // ✅ POST body 수동 파싱 (Vercel에서는 필요함)
+      const body = JSON.parse(await new Promise((resolve, reject) => {
+        let data = '';
+        req.on('data', chunk => data += chunk);
+        req.on('end', () => resolve(data));
+        req.on('error', err => reject(err));
+      }));
+  
+      const { nfcId, nonce } = body;
+  
+      if (!nfcId || !nonce) {
+        return res.status(400).json({ message: 'Missing nfcId or nonce' });
+      }
+  
+      const docRef = db.collection('nonces').doc(nfcId);
+      const snap = await docRef.get();
+  
+      if (!snap.exists() || snap.data().nonce !== nonce) {
+        return res.status(403).json({ message: 'Invalid or expired nonce' });
+      }
+  
+      // ✅ nonce 유효 → 삭제 후 토큰 발급
+      await docRef.delete();
+  
+      const newToken = randomUUID();
+      await db.collection('records').doc(nfcId).set(
+        { ownerToken: newToken },
+        { merge: true }
+      );
+  
+      return res.status(200).json({ token: newToken });
+    } catch (err) {
+      console.error('❌ 토큰 발급 실패:', err);
+      return res.status(500).json({ message: 'Server error' });
+    }
   }
-}
+  
