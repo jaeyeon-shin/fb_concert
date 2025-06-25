@@ -1,3 +1,4 @@
 node_modules/
 .env
 .env.local
+/api/fb-concert-firebase-adminsdk-fbsvc-c211026dc7.json
