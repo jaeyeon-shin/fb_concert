@@ -1,3 +1,4 @@
+// 📁 utils/checkAuthWithToken.js
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -16,14 +17,11 @@ export default async function checkAuthWithToken(userId, overrideToken = null) {
   const firestoreToken = snap.data().ownerToken;
   const localToken = overrideToken || localStorage.getItem(`authToken-${userId}`);
 
-  // ✅ 최초 인증 후 내부 이동만 허용하는 세션 플래그 확인
-  const sessionAllowed = localStorage.getItem(`auth-ok-${userId}`) === 'true';
-
-  // 🔒 Firestore 토큰이 아예 없거나 토큰 불일치 시 실패
+  // 🔐 토큰 자체가 없거나 일치하지 않으면 인증 실패
   if (!firestoreToken || !localToken || localToken !== firestoreToken) {
     return false;
   }
 
-  // ✅ 인증 성공 → 세션 플래그가 있어야만 진입 허용
-  return sessionAllowed;
+  // ✅ 토큰이 일치하면 인증 성공
+  return true;
 }
