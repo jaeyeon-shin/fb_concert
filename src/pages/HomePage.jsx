@@ -41,28 +41,27 @@ export default function HomePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1️⃣ 토큰 발급 시도
-        const newToken = await generateAndSaveOwnerToken(userId);
-        if (!newToken) {
-          alert("⚠️ 토큰 발급 실패");
+        // ✅ 0. 세션 기반 접속 허용 여부 확인 (중복 접속 방지)
+        const sessionKey = `session-${userId}`;
+        if (sessionStorage.getItem(sessionKey)) {
+          console.log("✅ 세션 유효: 새로고침 또는 기존 세션");
+        } else {
+          // 세션 정보가 없으면 → 새로고침이거나 URL 직접 접속
+          alert("🚫 세션이 만료되었습니다. NFC를 다시 태그해주세요.");
           setIsAuthorized(false);
           setLoading(false);
           return;
         }
 
-        // 2️⃣ 로컬에도 저장 (세션 유지)
-        localStorage.setItem(`authToken-${userId}`, newToken);
-        alert("📌 새 토큰이 발급되었습니다.");
-
-        // 3️⃣ 인증 확인
-        const isAuth = await checkAuthWithToken(userId, newToken);
+        // 🔐 1️⃣ 인증 토큰 검사 (localStorage → Firestore 비교)
+        const isAuth = await checkAuthWithToken(userId);
         if (!isAuth) {
           alert("🚫 인증 실패: 재접속 차단");
           setIsAuthorized(false);
           return;
         }
 
-        // 4️⃣ Firestore에서 데이터 가져오기
+        // 🔍 2️⃣ Firestore에서 데이터 가져오기
         const docRef = doc(db, "records", userId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -80,8 +79,34 @@ export default function HomePage() {
       }
     };
 
+    // 🔐 NFC 태그로 진입한 최초 접속이면 토큰 발급 및 세션 설정
+    const initSession = async () => {
+      const newToken = await generateAndSaveOwnerToken(userId);
+      if (!newToken) {
+        alert("⚠️ 토큰 발급 실패");
+        setIsAuthorized(false);
+        setLoading(false);
+        return;
+      }
+
+      // ✅ 인증 토큰 localStorage 저장 (세션 동안 사용)
+      localStorage.setItem(`authToken-${userId}`, newToken);
+
+      // ✅ 세션Storage에도 저장 → 브라우저 탭/세션 유지 동안만 유효
+      sessionStorage.setItem(`session-${userId}`, "active");
+
+      alert("📌 새 토큰이 발급되었습니다.");
+      fetchData(); // 이후 인증 + 데이터 로드
+    };
+
     if (userId) {
-      fetchData();
+      // 첫 접속이면 세션이 없음 → initSession()
+      if (!sessionStorage.getItem(`session-${userId}`)) {
+        initSession();
+      } else {
+        // 세션이 있으면 바로 fetch만 수행
+        fetchData();
+      }
     }
   }, [userId]);
 
@@ -90,7 +115,7 @@ export default function HomePage() {
     return <div className="p-4 text-white">로딩 중...</div>;
   }
 
-  // ⛔ 인증 실패 시
+  // ⛔ 인증 실패 시 안내
   if (!isAuthorized) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl text-center px-4">
@@ -116,6 +141,7 @@ export default function HomePage() {
           const token = await generateAndSaveOwnerToken(userId);
           if (token) {
             localStorage.setItem(`authToken-${userId}`, token);
+            sessionStorage.setItem(`session-${userId}`, "active");
             alert(`🔑 수동 토큰 발급 완료: ${token}`);
           } else {
             alert("❌ 토큰 수동 발급 실패");
