@@ -8,26 +8,29 @@ import generateOwnerToken from '../utils/generateOwnerToken';
  * - nonce는 서버에서 미리 발급받은 값이어야 함
  */
 export async function generateAndSaveOwnerToken(nfcId, nonce) {
-  try {
-    if (!nonce) {
-      console.error("❌ 유효하지 않은 nonce");
+    try {
+      const res = await fetch('/api/verifyNonceAndIssueToken', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nfcId, nonce }),
+      });
+  
+      if (!res.ok) {
+        console.error("🚫 토큰 발급 실패:", await res.text());
+        return null;
+      }
+  
+      const { token } = await res.json();
+  
+      if (token) {
+        localStorage.setItem(`authToken-${nfcId}`, token);
+        return token;
+      } else {
+        return null;
+      }
+    } catch (err) {
+      console.error("🔥 토큰 발급 중 오류 발생:", err);
       return null;
     }
-
-    // ✅ 새 토큰 생성
-    const newToken = generateOwnerToken();
-
-    // ✅ Firestore에 강제 저장 (기존 토큰 덮어쓰기 허용)
-    const docRef = doc(db, 'records', nfcId);
-    await setDoc(docRef, { ownerToken: newToken }, { merge: true });
-
-    // ✅ 로컬 저장
-    localStorage.setItem(`authToken-${nfcId}`, newToken);
-
-    console.log(`✅ 토큰 발급 완료: ${newToken}`);
-    return newToken;
-  } catch (err) {
-    console.error('❌ 토큰 발급 중 오류 발생:', err);
-    return null;
   }
-}
+  
