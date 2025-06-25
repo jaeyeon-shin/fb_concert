@@ -1,25 +1,20 @@
-// 📁 /api/requestTokenNonce.js
-
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getApps, initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import serviceAccount from './fb-concert-firebase-adminsdk-fbsvc-c211026dc7.json';
 import { randomUUID } from 'crypto';
 
-// 🔐 환경변수에서 서비스 계정 키 불러오기 (Vercel에 저장 필요)
-const serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_KEY || '{}');
-
-// Firebase Admin 초기화 (중복 방지)
-if (getApps().length === 0) {
+// ✅ Firebase Admin 초기화 (이미 초기화된 경우 방지)
+if (!getApps().length) {
   initializeApp({
-    credential: cert(serviceAccount),
+    credential: cert({
+      ...serviceAccount,
+      private_key: serviceAccount.private_key.replace(/\\n/g, '\n'), // 🔥 줄바꿈 처리 중요
+    }),
   });
 }
 
 const db = getFirestore();
 
-/**
- * ✅ 이 API는 NFC 태깅 직후 클라이언트가 호출
- * - Firestore에 "nonce" 값을 발급 & 저장 (유효기간: 클라이언트 판단)
- */
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
@@ -32,15 +27,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const nonce = randomUUID(); // 고유 nonce 생성
+    const nonce = randomUUID();
     await db.collection('nonces').doc(nfcId).set({
       nonce,
       createdAt: Date.now(),
     });
 
-    return res.status(200).json({ nonce });
+    res.status(200).json({ nonce });
   } catch (err) {
-    console.error('🔥 nonce 저장 실패:', err);
-    return res.status(500).json({ message: 'Server error' });
+    console.error('🔥 nonce 발급 실패:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 }
