@@ -4,14 +4,22 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { randomUUID } from 'crypto';
 
+// ✅ 환경 변수 확인 및 파싱
+const projectId = process.env.FIREBASE_PROJECT_ID;
+const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
+
+if (!projectId || !clientEmail || !privateKeyRaw) {
+  console.error('❌ 환경변수 누락:', { projectId, clientEmail, privateKeyRaw });
+  throw new Error('Firebase Admin 환경변수가 누락되었습니다.');
+}
+
+const privateKey = privateKeyRaw.replace(/\\n/g, '\n'); // 🔥 줄바꿈 복원
+
 // ✅ Firebase Admin SDK 초기화
 if (!getApps().length) {
   initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
+    credential: cert({ projectId, clientEmail, privateKey }),
   });
 }
 
