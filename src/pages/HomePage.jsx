@@ -47,6 +47,9 @@ export default function HomePage() {
 
           localStorage.setItem(`authToken-${userId}`, newToken); // ⏳ 세션 유지용
           console.log("✅ 토큰 발급 후 localStorage 저장 완료");
+
+          // 🔺 Firestore 반영 대기 시간 확보 (200ms)
+          await new Promise((resolve) => setTimeout(resolve, 200));
         } else {
           newToken = localStorage.getItem(`authToken-${userId}`); // 이전 세션 유지용 토큰 가져오기
         }
