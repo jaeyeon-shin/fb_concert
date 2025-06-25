@@ -1,31 +1,25 @@
-// 📁 /api/verifyNonceAndIssueToken.js
+// api/verifyNonceAndIssueToken.js
 
-import { getApps, initializeApp, cert } from 'firebase-admin/app';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { randomUUID } from 'crypto';
 
-// ✅ 환경변수에서 JSON 문자열을 안전하게 파싱
-let serviceAccount;
-try {
-  const raw = process.env.SERVICE_ACCOUNT_KEY;
-  if (!raw) throw new Error("FIREBASE_ADMIN_KEY_JSON is undefined");
-  serviceAccount = JSON.parse(raw);
-  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-} catch (err) {
-  console.error("🔥 Firebase Admin Key JSON 파싱 실패:", err);
-  throw err;
-}
-
-// ✅ Firebase Admin 초기화
+// ✅ Firebase Admin SDK 초기화
 if (!getApps().length) {
   initializeApp({
-    credential: cert(serviceAccount),
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
   });
 }
 
 const db = getFirestore();
 
-// ✅ 토큰 발급 API
+/**
+ * 🔐 nonce 검증 후, 토큰 발급 & 저장
+ */
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
@@ -45,10 +39,13 @@ export default async function handler(req, res) {
       return res.status(403).json({ message: 'Invalid or expired nonce' });
     }
 
-    // ✅ 유효한 nonce → 삭제하고 ownerToken 발급
+    // ✅ nonce 유효 → 삭제
     await docRef.delete();
 
+    // 🔐 새 토큰 발급
     const newToken = randomUUID();
+
+    // 🔐 records 문서에 저장
     await db.collection('records').doc(nfcId).set(
       { ownerToken: newToken },
       { merge: true }

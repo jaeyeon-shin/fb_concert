@@ -1,7 +1,7 @@
 // api/clearToken.js
 
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 // ✅ Firebase Admin SDK 초기화
 if (!getApps().length) {
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   try {
     const docRef = db.collection('records').doc(nfcId);
     await docRef.update({
-      ownerToken: FirebaseFirestore.FieldValue.delete(),
+      ownerToken: FieldValue.delete(), // ✅ 여기 수정됨!
     });
 
     return res.status(200).json({ success: true, message: `Token cleared for ${nfcId}` });
