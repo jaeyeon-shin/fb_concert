@@ -27,31 +27,37 @@ export default function HomePage() {
     return () => window.removeEventListener("beforeunload", handleUnload);
   }, [userId]);
 
-  // 🔐 인증 및 배경 이미지 불러오기
   useEffect(() => {
     const fetchData = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
-        const isFromTag = params.get("tagged") === "true"; // ✅ tagged=true로 NFC 태깅 여부 확인
+        const isFromTag = params.get("tagged") === "true";
 
         let newToken = null;
 
         if (isFromTag) {
-          newToken = await generateAndSaveOwnerToken(userId); // ✅ 태그된 경우에만 토큰 발급
-          if (!newToken) {
-            alert("⚠️ 토큰 발급 실패");
+          // 👉 NFC 태깅인 경우: 서버에서 nonce 요청
+          const res = await fetch(`/api/requestTokenNonce?nfcId=${userId}`);
+          const { nonce } = await res.json();
+
+          if (!nonce) {
+            alert('🚫 nonce 발급 실패');
             setIsAuthorized(false);
             setLoading(false);
             return;
           }
 
-          localStorage.setItem(`authToken-${userId}`, newToken); // ⏳ 세션 유지용
-          console.log("✅ 토큰 발급 후 localStorage 저장 완료");
+          // ✅ nonce를 포함해 토큰 발급 요청
+          newToken = await generateAndSaveOwnerToken(userId, nonce);
 
-          // 🔺 Firestore 반영 대기 시간 확보 (200ms)
-          await new Promise((resolve) => setTimeout(resolve, 200));
+          if (!newToken) {
+            setIsAuthorized(false);
+            setLoading(false);
+            return;
+          }
         } else {
-          newToken = localStorage.getItem(`authToken-${userId}`); // 이전 세션 유지용 토큰 가져오기
+          // 이전 세션 유지
+          newToken = localStorage.getItem(`authToken-${userId}`);
         }
 
         const isAuth = await checkAuthWithToken(userId, newToken);
@@ -61,8 +67,7 @@ export default function HomePage() {
           return;
         }
 
-        // ✅ 인증 성공 → 내부 페이지 이동 허용 플래그 저장
-        localStorage.setItem(`auth-ok-${userId}`, "true");
+        localStorage.setItem(`auth-ok-${userId}`, 'true');
 
         const docRef = doc(db, "records", userId);
         const docSnap = await getDoc(docRef);
@@ -83,6 +88,7 @@ export default function HomePage() {
 
     if (userId) fetchData();
   }, [userId]);
+
 
   // ⏳ 로딩 중
   if (loading) {

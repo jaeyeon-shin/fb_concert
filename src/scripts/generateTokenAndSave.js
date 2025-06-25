@@ -1,32 +1,40 @@
 // 📁 scripts/generateTokenAndSave.js
 import { db } from '../firebase';
-import { doc, getDoc, setDoc, deleteField } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import generateOwnerToken from '../utils/generateOwnerToken';
 
 /**
- * 🔐 항상 새 토큰을 발급하고 덮어씌움 (즉, 이전 토큰 제거)
- * → NFC 태깅이 트리거된 경우에만 호출되므로, 매번 접속 허용
+ * 🔐 서버에서 받은 nonce가 있어야만 토큰 발급이 가능
  */
-export async function generateAndSaveOwnerToken(nfcId) {
+export async function generateAndSaveOwnerToken(nfcId, nonce) {
   try {
+    const nonceDocRef = doc(db, 'nonces', nfcId);
+    const nonceSnap = await getDoc(nonceDocRef);
+
+    const serverNonce = nonceSnap.exists() ? nonceSnap.data().value : null;
+
+    // ⛔ nonce 없거나 불일치 → 태깅 아닌 접근
+    if (!serverNonce || serverNonce !== nonce) {
+      alert('🚫 유효하지 않은 접근입니다 (태깅 인증 실패)');
+      return null;
+    }
+
     const docRef = doc(db, 'records', nfcId);
+    const snap = await getDoc(docRef);
 
-    // 1️⃣ 새 랜덤 토큰 생성
+    // ✅ 토큰 생성 및 저장
     const newToken = generateOwnerToken();
-
-    // 2️⃣ Firestore에 토큰 덮어쓰기 (이전 토큰 제거)
     await setDoc(docRef, { ownerToken: newToken }, { merge: true });
 
-    // 3️⃣ 로컬 스토리지에도 저장 (하위 페이지 접근 가능하도록)
+    // ✅ 인증용 정보 로컬 저장
     localStorage.setItem(`authToken-${nfcId}`, newToken);
-    localStorage.setItem(`auth-ok-${nfcId}`, 'true'); // 👉 내부 페이지 접근 허용
+    localStorage.setItem(`auth-ok-${nfcId}`, 'true');
 
-    // ✅ 디버깅용
     console.log(`✅ 새 토큰 발급 완료 for ${nfcId}: ${newToken}`);
-
     return newToken;
   } catch (err) {
     console.error('🔥 토큰 발급 실패:', err);
+    alert('❌ 토큰 발급 중 오류 발생');
     return null;
   }
 }
