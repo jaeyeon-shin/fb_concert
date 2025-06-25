@@ -23,10 +23,5 @@ export default async function checkAuthWithToken(userId, overrideToken = null) {
   // 3️⃣ 토큰이 없거나 일치하지 않으면 인증 실패
   if (!localToken || localToken !== firestoreToken) return false;
 
-  // 4️⃣ 인증 성공 → 재접속 방지를 위해 Firestore에서 토큰 삭제
-  await updateDoc(docRef, {
-    ownerToken: deleteField()
-  });
-
   return true; // ✅ 인증 성공
 }
