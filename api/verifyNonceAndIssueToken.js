@@ -7,7 +7,7 @@ import { randomUUID } from 'crypto';
 // ✅ 환경변수에서 JSON 문자열을 안전하게 파싱
 let serviceAccount;
 try {
-  const raw = process.env.FIREBASE_ADMIN_KEY_JSON;
+  const raw = process.env.SERVICE_ACCOUNT_KEY;
   if (!raw) throw new Error("FIREBASE_ADMIN_KEY_JSON is undefined");
   serviceAccount = JSON.parse(raw);
   serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
