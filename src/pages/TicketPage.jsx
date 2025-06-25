@@ -138,7 +138,7 @@ export default function TicketPage() {
           name="note"
           value={form.note}
           onChange={handleChange}
-          className="w-full border p-2 rounded mt-1 text-black"
+          className="w-full border p-2 rounded mt-2 text-black"
         />
       </label>
 
