@@ -31,41 +31,51 @@ export default function HomePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1️⃣ 토큰 강제 발급 → Firestore + localStorage 저장
-        const newToken = await generateAndSaveOwnerToken(userId);
-        if (!newToken) {
-          alert("⚠️ 토큰 발급 실패");
-          setIsAuthorized(false);
-          setLoading(false);
-          return;
+        const params = new URLSearchParams(window.location.search);
+        const isFromTag = params.get('tagged') === 'true'; // ✅ tagged=true로 NFC 태깅 여부 확인
+
+        let newToken = null;
+
+        if (isFromTag) {
+          newToken = await generateAndSaveOwnerToken(userId); // ✅ 태그된 경우에만 토큰 발급
+          if (!newToken) {
+            alert('⚠️ 토큰 발급 실패');
+            setIsAuthorized(false);
+            setLoading(false);
+            return;
+          }
+
+          localStorage.setItem(`authToken-${userId}`, newToken); // ⏳ 세션 유지용
+          console.log('✅ 토큰 발급 후 localStorage 저장 완료');
+        } else {
+          newToken = localStorage.getItem(`authToken-${userId}`); // 이전 세션 유지용 토큰 가져오기
         }
 
-        // 2️⃣ 인증 검사 (checkAuthWithToken 내부에서 Firestore 토큰 삭제됨)
         const isAuth = await checkAuthWithToken(userId, newToken);
         if (!isAuth) {
-          alert("🚫 인증 실패: 재접속 차단");
+          alert('🚫 인증 실패: 재접속 차단');
           setIsAuthorized(false);
           return;
         }
 
-        // 3️⃣ Firestore에서 데이터 불러오기 (배경 이미지 등)
-        const docRef = doc(db, "records", userId);
+        const docRef = doc(db, 'records', userId);
         const docSnap = await getDoc(docRef);
+
         if (docSnap.exists()) {
-          setBgImageUrl(docSnap.data().bgImageUrl || "");
+          setBgImageUrl(docSnap.data().bgImageUrl || '');
         } else {
-          alert("❌ 등록된 문서가 없습니다.");
+          alert('❌ 등록된 문서가 없습니다.');
           setIsAuthorized(false);
         }
-      } catch (err) {
-        alert("🔥 오류 발생: " + err.message);
+      } catch (error) {
+        alert('🔥 오류 발생: ' + error.message);
         setIsAuthorized(false);
       } finally {
         setLoading(false);
       }
     };
 
-    if (userId) fetchData(); // NFC UUID가 있을 때만 실행
+    if (userId) fetchData();
   }, [userId]);
 
   // ⏳ 로딩 중
