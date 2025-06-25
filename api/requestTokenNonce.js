@@ -1,19 +1,10 @@
-// 📁 /api/requestTokenNonce.js
-
 import { getApps, initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { randomUUID } from 'crypto';
 
-/**
- * ✅ Firebase Admin SDK 초기화
- * - 환경변수 SERVICE_ACCOUNT_KEY는 JSON 문자열
- * - 🔥 private_key는 \n → 실제 줄바꿈으로 복원 필요
- */
+// ✅ 환경변수에서 JSON 문자열 파싱
 const raw = process.env.SERVICE_ACCOUNT_KEY;
-
-if (!raw) {
-  throw new Error('❌ SERVICE_ACCOUNT_KEY 환경변수가 비어있습니다.');
-}
+if (!raw) throw new Error('❌ SERVICE_ACCOUNT_KEY 환경변수가 비어있습니다.');
 
 const serviceAccount = JSON.parse(raw);
 
@@ -21,7 +12,7 @@ if (!getApps().length) {
   initializeApp({
     credential: cert({
       ...serviceAccount,
-      private_key: serviceAccount.private_key.replace(/\\n/g, '\n'), // 🔥 줄바꿈 복원 필수
+      private_key: serviceAccount.private_key.replace(/\\n/g, '\n'), // 🔥 복원 중요!
     }),
   });
 }
@@ -34,13 +25,12 @@ export default async function handler(req, res) {
   }
 
   const { nfcId } = req.body;
-
   if (!nfcId) {
     return res.status(400).json({ message: 'Missing nfcId' });
   }
 
   try {
-    const nonce = randomUUID(); // 고유 nonce 생성
+    const nonce = randomUUID();
     await db.collection('nonces').doc(nfcId).set({
       nonce,
       createdAt: Date.now(),
