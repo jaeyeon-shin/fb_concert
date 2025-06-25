@@ -2,17 +2,24 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { randomUUID } from 'crypto';
 
+let db;
+
 if (!getApps().length) {
-  const serviceAccount = JSON.parse(
-    process.env.SERVICE_ACCOUNT_KEY.replace(/\\n/g, '\n')
-  );
+  const decoded = Buffer.from(
+    process.env.SERVICE_ACCOUNT_KEY_BASE64,
+    'base64'
+  ).toString('utf-8');
+
+  const serviceAccount = JSON.parse(decoded.replace(/\\n/g, '\n'));
 
   initializeApp({
     credential: cert(serviceAccount),
   });
-}
 
-const db = getFirestore();
+  db = getFirestore();
+} else {
+  db = getFirestore();
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

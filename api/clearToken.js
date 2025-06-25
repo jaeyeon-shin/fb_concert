@@ -1,10 +1,18 @@
+import { FieldValue } from 'firebase-admin/firestore';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 
 if (!getApps().length) {
-  const serviceAccount = JSON.parse(
-    process.env.SERVICE_ACCOUNT_KEY.replace(/\\n/g, '\n')
-  );
+  let serviceAccount;
+
+  if (process.env.SERVICE_ACCOUNT_KEY_BASE64) {
+    const decoded = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf-8');
+    serviceAccount = JSON.parse(decoded.replace(/\\n/g, '\n'));
+  } else if (process.env.SERVICE_ACCOUNT_KEY) {
+    serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_KEY.replace(/\\n/g, '\n'));
+  } else {
+    throw new Error('No Firebase service account credentials provided');
+  }
 
   initializeApp({
     credential: cert(serviceAccount),
