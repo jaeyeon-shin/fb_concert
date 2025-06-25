@@ -1,84 +1,92 @@
-import { useParams, useNavigate } from "react-router-dom"; // URL 파라미터, 페이지 이동
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore"; // Firestore 함수
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
-import Button from "../components/Button"; // 버튼 컴포넌트
+import Button from "../components/Button";
 import photoIcon from "../assets/icons/photo.png";
 import ticketIcon from "../assets/icons/ticket.png";
 import musicIcon from "../assets/icons/music.png";
-import { generateAndSaveOwnerToken } from "../scripts/generateTokenAndSave"; // 🔐 토큰 발급
 import checkAuthWithToken from "../utils/checkAuthWithToken"; // 🔐 인증 함수
 
 export default function HomePage() {
-  const { userId } = useParams(); // NFC UUID
+  const { userId } = useParams();
   const navigate = useNavigate();
 
   const [bgImageUrl, setBgImageUrl] = useState("");
-  const [isAuthorized, setIsAuthorized] = useState(true); // 인증 여부
-  const [loading, setLoading] = useState(true); // 로딩 상태
+  const [isAuthorized, setIsAuthorized] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  // 🧹 탭 닫을 때 Firestore 토큰 강제 삭제
+  // 🧹 탭 종료 시 토큰 삭제 요청
   useEffect(() => {
     const handleUnload = () => {
       navigator.sendBeacon(`/api/clearToken?nfcId=${userId}`);
     };
-
     window.addEventListener("beforeunload", handleUnload);
     return () => window.removeEventListener("beforeunload", handleUnload);
   }, [userId]);
 
-  // 🔐 최초 접속 시 토큰 발급 or 기존 세션 인증
   useEffect(() => {
     const fetchData = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
         const isFromTag = params.get("tagged") === "true";
 
-        let newToken = null;
+        let token = null;
 
         if (isFromTag) {
-          // ✅ NFC 태깅된 경우 → 서버에 nonce 요청 (POST 방식!)
-          const res = await fetch('/api/requestTokenNonce', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          // 1️⃣ NFC 태깅 시 → 서버에 nonce 발급 요청 (POST)
+          const nonceRes = await fetch("/api/requestTokenNonce", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ nfcId: userId }),
           });
 
-          const { nonce } = await res.json();
+          const nonceData = await nonceRes.json();
+          const nonce = nonceData?.nonce;
 
           if (!nonce) {
-            alert('🚫 nonce 발급 실패');
+            alert("🚫 nonce 발급 실패");
             setIsAuthorized(false);
             setLoading(false);
             return;
           }
 
-          // 🔐 nonce가 있으면 토큰 발급 요청
-          newToken = await generateAndSaveOwnerToken(userId, nonce);
+          // 2️⃣ 서버에 nonce와 함께 토큰 발급 요청
+          const tokenRes = await fetch("/api/verifyNonceAndIssueToken", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nfcId: userId, nonce }),
+          });
 
-          if (!newToken) {
+          const tokenData = await tokenRes.json();
+          token = tokenData?.token;
+
+          if (!token) {
             alert("🚫 토큰 발급 실패");
             setIsAuthorized(false);
             setLoading(false);
             return;
           }
+
+          // 3️⃣ 로컬에 저장 (하위 페이지 접근용)
+          localStorage.setItem(`authToken-${userId}`, token);
         } else {
-          // ⏳ 기존 세션 유지
-          newToken = localStorage.getItem(`authToken-${userId}`);
+          // 이전 세션 유지
+          token = localStorage.getItem(`authToken-${userId}`);
         }
 
-        // 🔐 인증 검증
-        const isAuth = await checkAuthWithToken(userId, newToken);
+        // 4️⃣ 인증 유효성 확인
+        const isAuth = await checkAuthWithToken(userId, token);
         if (!isAuth) {
           alert("🚫 인증 실패: 재접속 차단");
           setIsAuthorized(false);
           return;
         }
 
-        // ✅ 인증 성공 → 내부 이동 허용
-        localStorage.setItem(`auth-ok-${userId}`, 'true');
+        // 5️⃣ 내부 페이지 접근 허용
+        localStorage.setItem(`auth-ok-${userId}`, "true");
 
-        // 🖼️ 백그라운드 이미지 불러오기
+        // 6️⃣ Firestore에서 배경 이미지 불러오기
         const docRef = doc(db, "records", userId);
         const docSnap = await getDoc(docRef);
 
@@ -99,12 +107,12 @@ export default function HomePage() {
     if (userId) fetchData();
   }, [userId]);
 
-  // ⏳ 로딩 중
+  // 로딩 상태
   if (loading) {
     return <div className="p-4 text-white">로딩 중...</div>;
   }
 
-  // ⛔ 인증 실패
+  // 인증 실패 시
   if (!isAuthorized) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl text-center px-4">
@@ -114,7 +122,7 @@ export default function HomePage() {
     );
   }
 
-  // ✅ 인증 성공 시 메인 화면 렌더링
+  // 메인 화면 렌더링
   return (
     <div
       className="min-h-screen bg-cover bg-center flex flex-col items-center justify-center space-y-10"
@@ -124,19 +132,12 @@ export default function HomePage() {
       <Button icon={photoIcon} label="PHOTO" onClick={() => navigate(`/photo/${userId}`)} />
       <Button icon={musicIcon} label="SETLIST" onClick={() => navigate(`/setlist/${userId}`)} />
 
-      {/* 🔧 개발 중 수동 토큰 발급용 버튼 */}
+      {/* 수동 테스트용 토큰 발급 버튼 */}
       <button
-        onClick={async () => {
-          const token = await generateAndSaveOwnerToken(userId);
-          if (token) {
-            localStorage.setItem(`authToken-${userId}`, token);
-            localStorage.setItem(`auth-ok-${userId}`, "true");
-            alert(`🔑 수동 토큰 발급 완료: ${token}`);
-          }
-        }}
-        className="mt-4 px-3 py-1 bg-red-600 text-white text-sm rounded"
+        onClick={() => alert("❌ 수동 발급 비활성화됨 (nonce 보호 중)")}
+        className="mt-4 px-3 py-1 bg-gray-500 text-white text-sm rounded"
       >
-        🔑 수동 토큰 발급
+        🔒 수동 토큰 발급 (비활성화)
       </button>
     </div>
   );
