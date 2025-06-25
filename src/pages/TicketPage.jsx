@@ -1,12 +1,12 @@
-// React 훅, Firebase, 라우터, 인증 유틸 import
+// 📁 src/pages/TicketPage.jsx
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useParams } from 'react-router-dom';
-import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 함수 import
+import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 함수
 
 export default function TicketPage() {
-  const { userId } = useParams(); // 🔍 URL 경로에서 UUID 추출
+  const { userId } = useParams(); // ex: /ticket/04A2ED12361E90
 
   const [form, setForm] = useState({
     title: '',
@@ -15,41 +15,50 @@ export default function TicketPage() {
     note: ''
   });
 
-  const [loading, setLoading] = useState(true);       // 전체 로딩 상태
-  const [saved, setSaved] = useState(false);          // 저장 완료 여부
-  const [authorized, setAuthorized] = useState(true); // 인증 여부
+  const [loading, setLoading] = useState(true);       // 🔄 로딩 상태
+  const [saved, setSaved] = useState(false);          // 💾 저장 성공 여부
+  const [authorized, setAuthorized] = useState(true); // 🔐 인증 여부
 
-  // 🔐 인증 및 데이터 불러오기
+  // 🔐 인증 + 기존 데이터 불러오기
   useEffect(() => {
     async function fetchData() {
-      // ✅ 1. localStorage에서 인증 토큰 꺼내기
-      const localToken = localStorage.getItem(`authToken-${userId}`);
+      try {
+        // ✅ Step 5: auth-ok 세션 확인
+        const isSessionAllowed = localStorage.getItem(`auth-ok-${userId}`) === 'true';
+        if (!isSessionAllowed) {
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
 
-      // ⛔ 2. 토큰이 없으면 인증 실패 처리
-      if (!localToken) {
+        // 1️⃣ 토큰 꺼내기
+        const localToken = localStorage.getItem(`authToken-${userId}`);
+        if (!localToken) {
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
+
+        // 2️⃣ 토큰 인증
+        const isAuth = await checkAuthWithToken(userId, localToken);
+        if (!isAuth) {
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
+
+        // 3️⃣ 인증 통과 시 기존 티켓 데이터 로드
+        const docRef = doc(db, 'records', userId);
+        const snap = await getDoc(docRef);
+        if (snap.exists() && snap.data().ticketData) {
+          setForm(snap.data().ticketData);
+        }
+      } catch (err) {
+        console.error('❌ 인증 또는 데이터 로딩 실패:', err);
         setAuthorized(false);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      // 🔐 3. Firestore 토큰과 일치하는지 검사
-      const isAuth = await checkAuthWithToken(userId, localToken);
-
-      if (!isAuth) {
-        setAuthorized(false);
-        setLoading(false);
-        return;
-      }
-
-      // ✅ 4. 인증 성공 시 Firestore에서 기존 티켓 데이터 불러오기
-      const docRef = doc(db, 'records', userId);
-      const snap = await getDoc(docRef);
-
-      if (snap.exists() && snap.data().ticketData) {
-        setForm(snap.data().ticketData);
-      }
-
-      setLoading(false);
     }
 
     if (userId) fetchData();

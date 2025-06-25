@@ -6,7 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 유틸
 
 export default function SetlistPage() {
-  const { userId } = useParams(); // URL 경로에서 UUID 추출 (ex: /setlist/04A2ED12361E90)
+  const { userId } = useParams(); // ex: /setlist/04A2ED12361E90
 
   const [setlist, setSetlist] = useState([]);         // 🎵 셋리스트 데이터
   const [loading, setLoading] = useState(true);       // 🔄 로딩 여부
@@ -16,7 +16,15 @@ export default function SetlistPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // 1️⃣ 로컬 토큰 꺼내기 (HomePage에서 저장됨)
+        // ✅ Step 5: auth-ok 체크 (홈에서 온 세션만 허용)
+        const isSessionAllowed = localStorage.getItem(`auth-ok-${userId}`) === 'true';
+        if (!isSessionAllowed) {
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
+
+        // 1️⃣ 로컬 토큰 꺼내기
         const localToken = localStorage.getItem(`authToken-${userId}`);
         if (!localToken) {
           setAuthorized(false);
@@ -24,7 +32,7 @@ export default function SetlistPage() {
           return;
         }
 
-        // 2️⃣ 토큰 유효성 확인 (checkAuthWithToken에 토큰 직접 전달)
+        // 2️⃣ 토큰 유효성 확인
         const isAuth = await checkAuthWithToken(userId, localToken);
         if (!isAuth) {
           setAuthorized(false);

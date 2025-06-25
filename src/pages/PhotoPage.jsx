@@ -14,7 +14,15 @@ export default function PhotoPage() {
   useEffect(() => {
     async function init() {
       try {
-        // 1️⃣ 로컬 저장소에서 토큰 가져오기 (Home에서 저장된 값)
+        // ✅ Step 5: Home에서 온 경우인지 확인 (세션 상태)
+        const isSessionAllowed = localStorage.getItem(`auth-ok-${userId}`) === 'true';
+        if (!isSessionAllowed) {
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
+
+        // 1️⃣ 로컬 저장소에서 토큰 가져오기
         const localToken = localStorage.getItem(`authToken-${userId}`);
         if (!localToken) {
           setAuthorized(false);
@@ -22,7 +30,7 @@ export default function PhotoPage() {
           return;
         }
 
-        // 2️⃣ 인증 확인 (checkAuthWithToken은 Firestore에는 접근 X)
+        // 2️⃣ 인증 확인
         const isAuth = await checkAuthWithToken(userId, localToken);
         if (!isAuth) {
           setAuthorized(false);

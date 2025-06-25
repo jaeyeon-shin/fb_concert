@@ -1,37 +1,29 @@
 import { db } from '../firebase';
-import { doc, getDoc, updateDoc, deleteField } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 /**
- * 🔐 ownerToken 인증 확인 및 Firestore에서 토큰 제거
+ * ownerToken 인증 확인 함수
  * @param {string} userId - 유저 ID (ex: NFC UUID)
- * @param {string|null} overrideToken - (옵션) 직접 전달받은 토큰
- * @returns {Promise<boolean>} - 인증 성공 여부 반환
+ * @param {string|null} overrideToken - 직접 전달받은 토큰 (localStorage 대신 사용 가능)
+ * @returns {Promise<boolean>} - 인증 성공 여부
  */
 export default async function checkAuthWithToken(userId, overrideToken = null) {
-  try {
-    const docRef = doc(db, 'records', userId);
-    const snap = await getDoc(docRef);
+  const docRef = doc(db, 'records', userId);
+  const snap = await getDoc(docRef);
 
-    // 1️⃣ 문서가 존재하지 않으면 인증 실패
-    if (!snap.exists()) return false;
+  if (!snap.exists()) return false;
 
-    const firestoreToken = snap.data().ownerToken;
+  const firestoreToken = snap.data().ownerToken;
+  const localToken = overrideToken || localStorage.getItem(`authToken-${userId}`);
 
-    // 2️⃣ 비교할 토큰: overrideToken > localStorage
-    const localToken = overrideToken || localStorage.getItem(`authToken-${userId}`);
+  // ✅ 최초 인증 후 내부 이동만 허용하는 세션 플래그 확인
+  const sessionAllowed = localStorage.getItem(`auth-ok-${userId}`) === 'true';
 
-    // 3️⃣ 토큰이 없거나 일치하지 않으면 인증 실패
-    if (!localToken || localToken !== firestoreToken) return false;
-
-    // 4️⃣ 인증 성공 시 Firestore에서 토큰 제거 (한 번만 유효하게 만듦)
-    await updateDoc(docRef, {
-      ownerToken: deleteField(),
-    });
-    console.log(`🧹 Firestore 토큰 제거 완료 for ${userId}`);
-
-    return true;
-  } catch (err) {
-    console.error("🔥 인증 실패 또는 Firestore 오류:", err);
+  // 🔒 Firestore 토큰이 아예 없거나 토큰 불일치 시 실패
+  if (!firestoreToken || !localToken || localToken !== firestoreToken) {
     return false;
   }
+
+  // ✅ 인증 성공 → 세션 플래그가 있어야만 진입 허용
+  return sessionAllowed;
 }

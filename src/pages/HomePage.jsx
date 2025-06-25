@@ -32,43 +32,46 @@ export default function HomePage() {
     const fetchData = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
-        const isFromTag = params.get('tagged') === 'true'; // ✅ tagged=true로 NFC 태깅 여부 확인
+        const isFromTag = params.get("tagged") === "true"; // ✅ tagged=true로 NFC 태깅 여부 확인
 
         let newToken = null;
 
         if (isFromTag) {
           newToken = await generateAndSaveOwnerToken(userId); // ✅ 태그된 경우에만 토큰 발급
           if (!newToken) {
-            alert('⚠️ 토큰 발급 실패');
+            alert("⚠️ 토큰 발급 실패");
             setIsAuthorized(false);
             setLoading(false);
             return;
           }
 
           localStorage.setItem(`authToken-${userId}`, newToken); // ⏳ 세션 유지용
-          console.log('✅ 토큰 발급 후 localStorage 저장 완료');
+          console.log("✅ 토큰 발급 후 localStorage 저장 완료");
         } else {
           newToken = localStorage.getItem(`authToken-${userId}`); // 이전 세션 유지용 토큰 가져오기
         }
 
         const isAuth = await checkAuthWithToken(userId, newToken);
         if (!isAuth) {
-          alert('🚫 인증 실패: 재접속 차단');
+          alert("🚫 인증 실패: 재접속 차단");
           setIsAuthorized(false);
           return;
         }
 
-        const docRef = doc(db, 'records', userId);
+        // ✅ 인증 성공 → 내부 페이지 이동 허용 플래그 저장
+        localStorage.setItem(`auth-ok-${userId}`, "true");
+
+        const docRef = doc(db, "records", userId);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setBgImageUrl(docSnap.data().bgImageUrl || '');
+          setBgImageUrl(docSnap.data().bgImageUrl || "");
         } else {
-          alert('❌ 등록된 문서가 없습니다.');
+          alert("❌ 등록된 문서가 없습니다.");
           setIsAuthorized(false);
         }
       } catch (error) {
-        alert('🔥 오류 발생: ' + error.message);
+        alert("🔥 오류 발생: " + error.message);
         setIsAuthorized(false);
       } finally {
         setLoading(false);
@@ -109,6 +112,7 @@ export default function HomePage() {
           const token = await generateAndSaveOwnerToken(userId);
           if (token) {
             localStorage.setItem(`authToken-${userId}`, token);
+            localStorage.setItem(`auth-ok-${userId}`, "true"); // 🔧 수동 토큰도 내부 이동 허용 플래그 저장
             alert(`🔑 수동 토큰 발급 완료: ${token}`);
           }
         }}
