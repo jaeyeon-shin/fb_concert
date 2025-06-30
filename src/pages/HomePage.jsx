@@ -7,77 +7,46 @@ import Button from "../components/Button";
 import photoIcon from "../assets/icons/photo.png";
 import ticketIcon from "../assets/icons/ticket.png";
 import musicIcon from "../assets/icons/music.png";
-import checkAuthWithToken from "../utils/checkAuthWithToken";
 
 export default function HomePage() {
-  const { userId } = useParams();
+  const { slug } = useParams(); // 이제 slug로 URL param 받음
   const navigate = useNavigate();
 
   const [bgImageUrl, setBgImageUrl] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  // 🔒 페이지 닫힐 때 ownerToken 제거 요청
+  // 🔒 페이지 닫힐 때 ownerToken 제거
   useEffect(() => {
     const handleUnload = () => {
-      navigator.sendBeacon(`/api/clearToken?nfcId=${userId}`);
+      navigator.sendBeacon(`/api/clearToken?slug=${slug}`);
     };
     window.addEventListener("beforeunload", handleUnload);
     return () => window.removeEventListener("beforeunload", handleUnload);
-  }, [userId]);
+  }, [slug]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const isFromTag = params.get("tagged") === "true";
-        let token = null;
+        // 🔥 API에 slug 보내서 토큰 발급 요청
+        const res = await fetch("/api/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug }),
+        });
+        const data = await res.json();
 
-        if (isFromTag) {
-          // 🔐 nonce 요청
-          const res = await fetch("/api/requestTokenNonce", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nfcId: userId }),
-          });
-          const { nonce } = await res.json();
-
-          if (!nonce) {
-            alert("🚫 nonce 발급 실패");
-            setIsAuthorized(false);
-            return;
-          }
-
-          // 🔐 nonce 인증 후 토큰 발급 요청
-          const tokenRes = await fetch("/api/verifyNonceAndIssueToken", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nfcId: userId, nonce }),
-          });
-          const data = await tokenRes.json();
-          token = data.token;
-
-          if (!token) {
-            alert("🚫 토큰 발급 실패");
-            setIsAuthorized(false);
-            return;
-          }
-
-          localStorage.setItem(`authToken-${userId}`, token);
-        } else {
-          token = localStorage.getItem(`authToken-${userId}`);
-        }
-
-        const isAuth = await checkAuthWithToken(userId, token);
-        if (!isAuth) {
-          alert("🚫 인증 실패: 재접속 차단");
+        if (!res.ok) {
+          alert(`🚫 인증 실패: ${data.message}`);
           setIsAuthorized(false);
           return;
         }
 
-        localStorage.setItem(`auth-ok-${userId}`, "true");
+        // ✅ ownerToken localStorage 저장
+        localStorage.setItem(`ownerToken-${slug}`, data.token);
 
-        const docRef = doc(db, "records", userId);
+        // 🔥 Firestore에서 bgImageUrl 바로 로딩
+        const docRef = doc(db, "records", slug);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setBgImageUrl(docSnap.data().bgImageUrl || "");
@@ -93,8 +62,8 @@ export default function HomePage() {
       }
     };
 
-    if (userId) fetchData();
-  }, [userId]);
+    if (slug) fetchData();
+  }, [slug]);
 
   if (loading) return <div className="p-4 text-white">로딩 중...</div>;
 
@@ -112,9 +81,9 @@ export default function HomePage() {
       className="min-h-screen bg-cover bg-center flex flex-col items-center justify-center space-y-10"
       style={{ backgroundImage: `url(${bgImageUrl})` }}
     >
-      <Button icon={ticketIcon} label="TICKET" onClick={() => navigate(`/ticket/${userId}`)} />
-      <Button icon={photoIcon} label="PHOTO" onClick={() => navigate(`/photo/${userId}`)} />
-      <Button icon={musicIcon} label="SETLIST" onClick={() => navigate(`/setlist/${userId}`)} />
+      <Button icon={ticketIcon} label="TICKET" onClick={() => navigate(`/ticket/${slug}`)} />
+      <Button icon={photoIcon} label="PHOTO" onClick={() => navigate(`/photo/${slug}`)} />
+      <Button icon={musicIcon} label="SETLIST" onClick={() => navigate(`/setlist/${slug}`)} />
     </div>
   );
 }

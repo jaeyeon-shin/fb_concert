@@ -1,10 +1,9 @@
 // 📁 src/pages/PhotoPage.jsx
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 유틸 함수
 
 export default function PhotoPage() {
-  const { userId } = useParams(); // ex: /photo/04A2EC12361E90
+  const { slug } = useParams(); // ex: /photo/slug_abc123
 
   const [images, setImages] = useState([]);           // 📸 이미지 상태
   const [loading, setLoading] = useState(true);       // 🔄 로딩 상태
@@ -12,47 +11,33 @@ export default function PhotoPage() {
 
   // 🔐 인증 확인 + 사진 데이터 로드
   useEffect(() => {
-    async function init() {
-      try {
-        // ✅ Step 5: Home에서 온 경우인지 확인 (세션 상태)
-        const isSessionAllowed = localStorage.getItem(`auth-ok-${userId}`) === 'true';
-        if (!isSessionAllowed) {
-          setAuthorized(false);
-          setLoading(false);
-          return;
-        }
-
-        // 1️⃣ 로컬 저장소에서 토큰 가져오기
-        const localToken = localStorage.getItem(`authToken-${userId}`);
-        if (!localToken) {
-          setAuthorized(false);
-          setLoading(false);
-          return;
-        }
-
-        // 2️⃣ 인증 확인
-        const isAuth = await checkAuthWithToken(userId, localToken);
-        if (!isAuth) {
-          setAuthorized(false);
-          setLoading(false);
-          return;
-        }
-
-        // 3️⃣ 인증 통과 시 로컬 저장소에서 이미지 로드
-        const saved = localStorage.getItem(`photoList-${userId}`);
-        if (saved) {
-          setImages(JSON.parse(saved));
-        }
-      } catch (err) {
-        console.error("❌ 인증 또는 이미지 로드 실패:", err);
+    try {
+      const isSessionAllowed = localStorage.getItem(`auth-ok-${slug}`) === 'true';
+      if (!isSessionAllowed) {
         setAuthorized(false);
-      } finally {
         setLoading(false);
+        return;
       }
-    }
 
-    if (userId) init();
-  }, [userId]);
+      const localToken = localStorage.getItem(`ownerToken-${slug}`);
+      if (!localToken) {
+        setAuthorized(false);
+        setLoading(false);
+        return;
+      }
+
+      // ✅ 인증 통과 시 로컬 저장소에서 이미지 로드
+      const saved = localStorage.getItem(`photoList-${slug}`);
+      if (saved) {
+        setImages(JSON.parse(saved));
+      }
+    } catch (err) {
+      console.error("❌ 인증 또는 이미지 로드 실패:", err);
+      setAuthorized(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
 
   // 📤 이미지 업로드 핸들러
   const handleChange = (e) => {
@@ -63,7 +48,7 @@ export default function PhotoPage() {
         const base64 = reader.result;
         const updated = [...images, base64];
         setImages(updated);
-        localStorage.setItem(`photoList-${userId}`, JSON.stringify(updated));
+        localStorage.setItem(`photoList-${slug}`, JSON.stringify(updated));
       };
       reader.readAsDataURL(file);
     });

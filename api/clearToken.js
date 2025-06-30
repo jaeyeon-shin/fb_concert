@@ -1,6 +1,5 @@
-import { FieldValue } from 'firebase-admin/firestore';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 if (!getApps().length) {
   let serviceAccount;
@@ -22,19 +21,19 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
-  const { nfcId } = req.query;
+  const { slug } = req.query;
 
-  if (!nfcId) {
-    return res.status(400).json({ error: 'nfcId is required' });
+  if (!slug) {
+    return res.status(400).json({ error: 'slug is required' });
   }
 
   try {
-    const docRef = db.collection('records').doc(nfcId);
+    const docRef = db.collection('records').doc(slug);
     await docRef.update({
       ownerToken: FieldValue.delete(),
     });
 
-    return res.status(200).json({ success: true, message: `Token cleared for ${nfcId}` });
+    return res.status(200).json({ success: true, message: `Token cleared for ${slug}` });
   } catch (error) {
     console.error('🔥 Firestore token 삭제 실패:', error);
     return res.status(500).json({ success: false, error: error.message });

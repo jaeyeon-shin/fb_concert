@@ -26,32 +26,38 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { nfcId, nonce } = req.body;
+  const { slug } = req.body;
 
-  if (!nfcId || !nonce) {
-    return res.status(400).json({ message: 'Missing nfcId or nonce' });
+  if (!slug) {
+    return res.status(400).json({ message: 'Missing slug' });
   }
 
   try {
-    const docRef = db.collection('nonces').doc(nfcId);
-    const snap = await docRef.get();
+    const docRef = db.collection('records').doc(slug);
+    const docSnap = await docRef.get();
 
-    if (!snap.exists() || snap.data().nonce !== nonce) {
-      return res.status(403).json({ message: 'Invalid or expired nonce' });
+    if (!docSnap.exists) {
+      return res.status(404).json({ message: 'Invalid NFC slug' });
     }
 
-    await docRef.delete();
+    const data = docSnap.data();
 
+    // 🔥 이미 활성 ownerToken 존재하면 재접속 차단
+    if (data.ownerToken) {
+      return res.status(403).json({ message: 'Already accessed. Please retag NFC.' });
+    }
+
+    // ✅ ownerToken 새로 발급
     const newToken = randomUUID();
 
-    await db.collection('records').doc(nfcId).set(
-      { ownerToken: newToken },
-      { merge: true }
-    );
+    await docRef.update({
+      ownerToken: newToken,
+      accessedAt: Date.now(),
+    });
 
-    return res.status(200).json({ token: newToken });
+    return res.status(200).json({ token: newToken, nfcId: data.nfcId });
   } catch (err) {
-    console.error('❌ 토큰 발급 실패:', err);
+    console.error('❌ Token issue failed:', err);
     return res.status(500).json({ message: 'Server error' });
   }
 }

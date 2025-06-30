@@ -15,22 +15,12 @@ import UnauthorizedPage from './pages/UnauthorizedPage';
 export default function Router() {
   return (
     <Routes>
-      {/* ✅ 메인 진입 페이지 (NFC 태깅 후 진입) */}
-      {/* 예: /u/04A2ED12361E90 형태의 URL로 진입 */}
-      <Route path="/u/:uuid" element={<HomePage />} />
-
-      {/* 🎫 티켓 페이지: 공연 정보 입력 및 조회 */}
-      {/* 예: navigate("/ticket/04A2ED12361E90") */}
-      <Route path="/ticket/:userId" element={<TicketPage />} />
-
-      {/* 📸 사진 업로드 및 갤러리 페이지 */}
-      <Route path="/photo/:userId" element={<PhotoPage />} />
-
-      {/* 🎵 셋리스트(공연 곡 목록) 페이지 */}
-      <Route path="/setlist/:userId" element={<SetlistPage />} />
-
-      {/* 접근제한 페이지 */}
+      <Route path="/:slug" element={<HomePage />} />
+      <Route path="/ticket/:slug" element={<TicketPage />} />
+      <Route path="/photo/:slug" element={<PhotoPage />} />
+      <Route path="/setlist/:slug" element={<SetlistPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
     </Routes>
+
   );
 }

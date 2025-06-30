@@ -3,45 +3,34 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 유틸
 
 export default function SetlistPage() {
-  const { userId } = useParams(); // ex: /setlist/04A2ED12361E90
+  const { slug } = useParams(); // ex: /setlist/slug_abc123
 
   const [setlist, setSetlist] = useState([]);         // 🎵 셋리스트 데이터
   const [loading, setLoading] = useState(true);       // 🔄 로딩 여부
   const [authorized, setAuthorized] = useState(true); // 🔐 인증 성공 여부
 
-  // 🔐 인증 + 셋리스트 로딩
   useEffect(() => {
     async function fetchData() {
       try {
-        // ✅ Step 5: auth-ok 체크 (홈에서 온 세션만 허용)
-        const isSessionAllowed = localStorage.getItem(`auth-ok-${userId}`) === 'true';
+        // ✅ slug 기반 인증: auth-ok 플래그 + ownerToken 확인
+        const isSessionAllowed = localStorage.getItem(`auth-ok-${slug}`) === 'true';
         if (!isSessionAllowed) {
           setAuthorized(false);
           setLoading(false);
           return;
         }
 
-        // 1️⃣ 로컬 토큰 꺼내기
-        const localToken = localStorage.getItem(`authToken-${userId}`);
+        const localToken = localStorage.getItem(`ownerToken-${slug}`);
         if (!localToken) {
           setAuthorized(false);
           setLoading(false);
           return;
         }
 
-        // 2️⃣ 토큰 유효성 확인
-        const isAuth = await checkAuthWithToken(userId, localToken);
-        if (!isAuth) {
-          setAuthorized(false);
-          setLoading(false);
-          return;
-        }
-
-        // 3️⃣ 인증 통과 시 Firestore에서 setlist 로드
-        const docRef = doc(db, 'records', userId);
+        // ✅ 인증 통과 시 Firestore에서 setlist 로드
+        const docRef = doc(db, 'records', slug);
         const snap = await getDoc(docRef);
         if (snap.exists() && snap.data().setlist) {
           setSetlist(snap.data().setlist);
@@ -54,8 +43,8 @@ export default function SetlistPage() {
       }
     }
 
-    if (userId) fetchData();
-  }, [userId]);
+    if (slug) fetchData();
+  }, [slug]);
 
   // ⛔ 인증 실패 시 메시지
   if (!authorized) {

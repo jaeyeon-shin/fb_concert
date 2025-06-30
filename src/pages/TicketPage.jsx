@@ -3,10 +3,9 @@ import { useEffect, useState } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useParams } from 'react-router-dom';
-import checkAuthWithToken from '../utils/checkAuthWithToken'; // 🔐 인증 함수
 
 export default function TicketPage() {
-  const { userId } = useParams(); // ex: /ticket/04A2ED12361E90
+  const { slug } = useParams(); // ex: /ticket/slug_abc123
 
   const [form, setForm] = useState({
     title: '',
@@ -19,36 +18,26 @@ export default function TicketPage() {
   const [saved, setSaved] = useState(false);          // 💾 저장 성공 여부
   const [authorized, setAuthorized] = useState(true); // 🔐 인증 여부
 
-  // 🔐 인증 + 기존 데이터 불러오기
   useEffect(() => {
     async function fetchData() {
       try {
-        // ✅ Step 5: auth-ok 세션 확인
-        const isSessionAllowed = localStorage.getItem(`auth-ok-${userId}`) === 'true';
+        // ✅ slug 기반 인증
+        const isSessionAllowed = localStorage.getItem(`auth-ok-${slug}`) === 'true';
         if (!isSessionAllowed) {
           setAuthorized(false);
           setLoading(false);
           return;
         }
 
-        // 1️⃣ 토큰 꺼내기
-        const localToken = localStorage.getItem(`authToken-${userId}`);
+        const localToken = localStorage.getItem(`ownerToken-${slug}`);
         if (!localToken) {
           setAuthorized(false);
           setLoading(false);
           return;
         }
 
-        // 2️⃣ 토큰 인증
-        const isAuth = await checkAuthWithToken(userId, localToken);
-        if (!isAuth) {
-          setAuthorized(false);
-          setLoading(false);
-          return;
-        }
-
-        // 3️⃣ 인증 통과 시 기존 티켓 데이터 로드
-        const docRef = doc(db, 'records', userId);
+        // ✅ 인증 통과 시 Firestore에서 기존 티켓 데이터 로드
+        const docRef = doc(db, 'records', slug);
         const snap = await getDoc(docRef);
         if (snap.exists() && snap.data().ticketData) {
           setForm(snap.data().ticketData);
@@ -61,8 +50,8 @@ export default function TicketPage() {
       }
     }
 
-    if (userId) fetchData();
-  }, [userId]);
+    if (slug) fetchData();
+  }, [slug]);
 
   // ✍️ 입력 핸들러
   const handleChange = (e) => {
@@ -72,7 +61,7 @@ export default function TicketPage() {
 
   // 💾 저장 핸들러
   const handleSave = async () => {
-    const docRef = doc(db, 'records', userId);
+    const docRef = doc(db, 'records', slug);
     await setDoc(docRef, { ticketData: form }, { merge: true });
     setSaved(true);
   };
