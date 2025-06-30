@@ -11,14 +11,13 @@ import musicIcon from "../assets/icons/music.png";
 console.log("🔥 HomePage 렌더링 시작");
 
 export default function HomePage() {
-  const { slug } = useParams(); // URL에서 slug 받음
+  const { slug } = useParams();
   const navigate = useNavigate();
 
   const [bgImageUrl, setBgImageUrl] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  // 🔒 페이지 닫힐 때 ownerToken 제거
   useEffect(() => {
     console.log("✅ useEffect handleUnload 등록:", slug);
     const handleUnload = () => {
@@ -29,7 +28,6 @@ export default function HomePage() {
     return () => window.removeEventListener("beforeunload", handleUnload);
   }, [slug]);
 
-  // 🔍 메인 로직
   useEffect(() => {
     const fetchData = async () => {
       console.log("👉 fetchData() 진입, slug:", slug);
@@ -40,7 +38,6 @@ export default function HomePage() {
       }
 
       try {
-        // 🔥 API 인증 요청
         console.log("📡 /api/verify 호출");
         const res = await fetch("/api/verify", {
           method: "POST",
@@ -57,11 +54,9 @@ export default function HomePage() {
           return;
         }
 
-        // ✅ ownerToken 저장
         localStorage.setItem(`ownerToken-${slug}`, data.token);
         console.log(`🔐 ownerToken-${slug} 저장 완료`);
 
-        // 🔥 Firestore 문서 불러오기
         const docRef = doc(db, "records", slug);
         console.log("📚 Firestore 문서 불러오기 시도:", slug);
         const docSnap = await getDoc(docRef);
