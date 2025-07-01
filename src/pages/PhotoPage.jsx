@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import checkAuthWithToken from '../utils/checkAuthWithToken';
 
 export default function PhotoPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation(); // 🔥 location.key 가져오기
 
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function init() {
-      console.log("📸 PhotoPage: slug =", slug);
+      console.log("📸 PhotoPage: slug =", slug, "location.key =", location.key);
       const localToken = localStorage.getItem(`ownerToken-${slug}`);
       console.log("🔍 localToken =", localToken);
 
@@ -32,7 +33,7 @@ export default function PhotoPage() {
     }
 
     if (slug) init();
-  }, [slug, navigate]);
+  }, [slug, location.key, navigate]); // 👈 뒤로가기 포함해서 항상 재실행
 
   const handleChange = (e) => {
     const files = Array.from(e.target.files);

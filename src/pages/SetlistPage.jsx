@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import checkAuthWithToken from '../utils/checkAuthWithToken';
@@ -7,13 +7,14 @@ import checkAuthWithToken from '../utils/checkAuthWithToken';
 export default function SetlistPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation(); // 🔥
 
   const [setlist, setSetlist] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
-      console.log("🎵 SetlistPage: slug =", slug);
+      console.log("🎵 SetlistPage: slug =", slug, "location.key =", location.key);
       const localToken = localStorage.getItem(`ownerToken-${slug}`);
       console.log("🔍 localToken =", localToken);
 
@@ -36,7 +37,7 @@ export default function SetlistPage() {
     }
 
     if (slug) fetchData();
-  }, [slug, navigate]);
+  }, [slug, location.key, navigate]); // 👈 뒤로가기 포함
 
   if (loading) return <div className="p-4 text-white">불러오는 중...</div>;
 

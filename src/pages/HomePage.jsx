@@ -1,24 +1,19 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
-import Button from "../components/Button";
-import photoIcon from "../assets/icons/photo.png";
-import ticketIcon from "../assets/icons/ticket.png";
-import musicIcon from "../assets/icons/music.png";
 
 export default function HomePage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation(); // 👈
 
   const [bgImageUrl, setBgImageUrl] = useState("");
+  const [isAuthorized, setIsAuthorized] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  // 페이지 닫힐 때 clearToken 호출
   useEffect(() => {
-    console.log("✅ useEffect handleUnload 등록:", slug);
     const handleUnload = () => {
-      console.log("💥 페이지 닫힘 - clearToken 호출");
       navigator.sendBeacon(`/api/clearToken?slug=${slug}`);
     };
     window.addEventListener("beforeunload", handleUnload);
@@ -27,12 +22,11 @@ export default function HomePage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      console.log("👉 HomePage fetchData(), slug:", slug);
+      console.log("🔄 페이지 이동 / slug:", slug, "location:", location.key);
 
       if (!slug) return;
 
       try {
-        console.log("📡 /api/verify 호출");
         const res = await fetch("/api/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -40,43 +34,47 @@ export default function HomePage() {
         });
 
         const data = await res.json();
-        console.log("✅ /api/verify 응답:", data);
+        console.log("✅ verify 응답:", data);
 
         if (!res.ok) {
-          console.log(`🚫 인증 실패: ${data.message}`);
           alert(`🚫 인증 실패: ${data.message}`);
-          navigate("/unauthorized");
+          setIsAuthorized(false);
           return;
         }
 
         localStorage.setItem(`ownerToken-${slug}`, data.token);
-        console.log(`🔐 localStorage 저장 완료: ownerToken-${slug} = ${data.token}`);
 
         const docRef = doc(db, "records", slug);
-        console.log("📚 Firestore 문서 조회 시도:", slug);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          console.log("✅ Firestore 문서 존재:", docSnap.data());
           setBgImageUrl(docSnap.data().bgImageUrl || "");
         } else {
-          console.log("❌ Firestore 문서 없음:", slug);
           alert("❌ 등록된 문서가 없습니다.");
-          navigate("/unauthorized");
+          setIsAuthorized(false);
         }
       } catch (err) {
         console.error("🔥 verify 또는 Firestore 오류:", err);
         alert("🔥 오류 발생: " + err.message);
-        navigate("/unauthorized");
+        setIsAuthorized(false);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [slug, navigate]);
+  }, [slug, location.key]); // 👈 뒤로가기 할 때도 다시 verify 함
 
   if (loading) return <div className="p-4 text-white">로딩 중...</div>;
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl text-center px-4">
+        ⚠️ 재접속이 허용되지 않거나 등록되지 않은 NFC입니다. <br />
+        NFC를 다시 태그해주세요.
+      </div>
+    );
+  }
 
   return (
     <div
