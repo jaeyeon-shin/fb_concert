@@ -1,4 +1,4 @@
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -10,7 +10,6 @@ import musicIcon from "../assets/icons/music.png";
 export default function HomePage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); 
 
   const [bgImageUrl, setBgImageUrl] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(true);
@@ -34,7 +33,7 @@ export default function HomePage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      console.log("🔄 HomePage 이동 / slug:", slug, "location.key:", location.key);
+      console.log("🔄 HomePage 이동 / slug:", slug);
 
       if (!slug) return;
 
@@ -79,7 +78,7 @@ export default function HomePage() {
     };
 
     fetchData();
-  }, [slug, location.key]); // 👈 history 뒤로가기 포함
+  }, [slug]); // ✅ location.key 제거
 
   if (loading) return <div className="p-4 text-white">로딩 중...</div>;
 

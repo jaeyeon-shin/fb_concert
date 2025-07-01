@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import checkAuthWithToken from '../utils/checkAuthWithToken';
 
 export default function PhotoPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function init() {
-      console.log("📸 PhotoPage: slug =", slug, "location.key =", location.key);
+      console.log("📸 PhotoPage: slug =", slug);
       const localToken = localStorage.getItem(`ownerToken-${slug}`);
       console.log("🔍 localToken =", localToken);
 
@@ -46,7 +45,7 @@ export default function PhotoPage() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [slug, location.key, navigate]);
+  }, [slug, navigate]); // ✅ location.key 제거
 
   const handleChange = (e) => {
     const files = Array.from(e.target.files);

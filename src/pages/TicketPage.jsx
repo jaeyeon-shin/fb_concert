@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import checkAuthWithToken from '../utils/checkAuthWithToken';
 
 export default function TicketPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [form, setForm] = useState({ title: '', date: '', seat: '', note: '' });
   const [loading, setLoading] = useState(true);
@@ -15,7 +14,7 @@ export default function TicketPage() {
 
   useEffect(() => {
     async function fetchData() {
-      console.log("🎫 TicketPage: slug =", slug, "location.key =", location.key);
+      console.log("🎫 TicketPage: slug =", slug);
       const localToken = localStorage.getItem(`ownerToken-${slug}`);
       console.log("🔍 localToken =", localToken);
 
@@ -51,7 +50,7 @@ export default function TicketPage() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [slug, location.key, navigate]);
+  }, [slug, navigate]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });

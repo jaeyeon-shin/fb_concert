@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import checkAuthWithToken from '../utils/checkAuthWithToken';
@@ -7,14 +7,13 @@ import checkAuthWithToken from '../utils/checkAuthWithToken';
 export default function SetlistPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [setlist, setSetlist] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
-      console.log("🎵 SetlistPage: slug =", slug, "location.key =", location.key);
+      console.log("🎵 SetlistPage: slug =", slug);
       const localToken = localStorage.getItem(`ownerToken-${slug}`);
       console.log("🔍 localToken =", localToken);
 
@@ -38,7 +37,7 @@ export default function SetlistPage() {
 
     if (slug) fetchData();
 
-    // 🔥 visibilitychange 이벤트 등록 → 앱 복귀시 재검증
+    // 🔥 visibilitychange 로 앱 복귀할 때 강제 재검증
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         console.log("👀 SetlistPage: visibilitychange → 재검증");
@@ -50,7 +49,7 @@ export default function SetlistPage() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [slug, location.key, navigate]);
+  }, [slug, navigate]); // ✅ location.key 제거
 
   if (loading) return <div className="p-4 text-white">불러오는 중...</div>;
 
