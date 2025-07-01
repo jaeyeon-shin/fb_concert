@@ -10,25 +10,31 @@ import musicIcon from "../assets/icons/music.png";
 export default function HomePage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // 🔥 history 뒤로가기도 key 로 잡는다
+  const location = useLocation(); 
 
   const [bgImageUrl, setBgImageUrl] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  // 페이지 unload 될 때 clearToken
+  // ✅ unload + visibilitychange 모두 사용
   useEffect(() => {
-    const handleUnload = () => {
-      console.log("💥 HomePage unload - clearToken");
+    const handleClear = () => {
+      console.log("💥 HomePage unload/visibilitychange - clearToken");
       navigator.sendBeacon(`/api/clearToken?slug=${slug}`);
     };
-    window.addEventListener("beforeunload", handleUnload);
-    return () => window.removeEventListener("beforeunload", handleUnload);
+    window.addEventListener("beforeunload", handleClear);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") handleClear();
+    });
+    return () => {
+      window.removeEventListener("beforeunload", handleClear);
+      document.removeEventListener("visibilitychange", handleClear);
+    };
   }, [slug]);
 
   useEffect(() => {
     const fetchData = async () => {
-      console.log("🔄 HomePage 재로드 / slug:", slug, "location.key:", location.key);
+      console.log("🔄 HomePage 이동 / slug:", slug, "location.key:", location.key);
 
       if (!slug) return;
 
@@ -52,12 +58,11 @@ export default function HomePage() {
         localStorage.setItem(`ownerToken-${slug}`, data.token);
         console.log(`🔐 ownerToken-${slug} 저장 완료`);
 
-        // Firestore에서 배경 이미지 불러오기
         const docRef = doc(db, "records", slug);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          console.log("🎨 Firestore 문서 존재 → 배경 로드");
+          console.log("🎨 Firestore 문서 → 배경 로드");
           setBgImageUrl(docSnap.data().bgImageUrl || "");
         } else {
           console.log("❌ Firestore 문서 없음:", slug);
@@ -65,7 +70,7 @@ export default function HomePage() {
           setIsAuthorized(false);
         }
       } catch (err) {
-        console.error("🔥 HomePage verify / Firestore 오류:", err);
+        console.error("🔥 HomePage 오류:", err);
         alert("🔥 오류 발생: " + err.message);
         setIsAuthorized(false);
       } finally {
@@ -74,7 +79,7 @@ export default function HomePage() {
     };
 
     fetchData();
-  }, [slug, location.key]); // 뒤로가기까지 완전 방지
+  }, [slug, location.key]); // 👈 history 뒤로가기 포함
 
   if (loading) return <div className="p-4 text-white">로딩 중...</div>;
 

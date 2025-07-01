@@ -5,7 +5,7 @@ import checkAuthWithToken from '../utils/checkAuthWithToken';
 export default function PhotoPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // 🔥 뒤로가기 키 추적
+  const location = useLocation();
 
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +33,20 @@ export default function PhotoPage() {
     }
 
     if (slug) init();
-  }, [slug, location.key, navigate]); // 👈 뒤로가기 할 때도 강제 재검증
+
+    // 🔥 visibilitychange 로 앱 복귀할 때도 강제 재검증
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("👀 PhotoPage: visibilitychange → 재검증");
+        init();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [slug, location.key, navigate]);
 
   const handleChange = (e) => {
     const files = Array.from(e.target.files);

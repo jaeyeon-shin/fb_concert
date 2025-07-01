@@ -7,7 +7,7 @@ import checkAuthWithToken from '../utils/checkAuthWithToken';
 export default function TicketPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // 🔥 뒤로가기 위치 키 트래킹
+  const location = useLocation();
 
   const [form, setForm] = useState({ title: '', date: '', seat: '', note: '' });
   const [loading, setLoading] = useState(true);
@@ -38,7 +38,20 @@ export default function TicketPage() {
     }
 
     if (slug) fetchData();
-  }, [slug, location.key, navigate]); // 👈 history 스택 이동 포함해서 항상 재검증
+
+    // 🔥 visibilitychange → 앱 다시 활성화되면 재검증
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("👀 TicketPage: visibilitychange → 재검증");
+        fetchData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [slug, location.key, navigate]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
