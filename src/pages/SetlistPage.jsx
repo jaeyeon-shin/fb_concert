@@ -10,16 +10,19 @@ export default function SetlistPage() {
 
   const [setlist, setSetlist] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [authorized, setAuthorized] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
+      console.log("🎵 SetlistPage: slug =", slug);
       const localToken = localStorage.getItem(`ownerToken-${slug}`);
+      console.log("🔍 localToken =", localToken);
 
       const isAuth = await checkAuthWithToken(slug, localToken);
+      console.log("✅ checkAuthWithToken result =", isAuth);
+
       if (!isAuth) {
-        setAuthorized(false);
-        setLoading(false);
+        console.log("🚫 인증 실패 → /unauthorized 이동");
+        navigate('/unauthorized');
         return;
       }
 
@@ -33,12 +36,7 @@ export default function SetlistPage() {
     }
 
     if (slug) fetchData();
-  }, [slug]);
-
-  if (!authorized) {
-    navigate('/unauthorized');
-    return null;
-  }
+  }, [slug, navigate]);
 
   if (loading) return <div className="p-4 text-white">불러오는 중...</div>;
 
@@ -51,7 +49,12 @@ export default function SetlistPage() {
         <ul className="space-y-2">
           {setlist.map((item, i) => (
             <li key={i}>
-              <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 underline"
+              >
                 {i + 1}. {item.title}
               </a>
             </li>

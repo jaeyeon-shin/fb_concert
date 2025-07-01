@@ -1,15 +1,15 @@
-// src/pages/UnauthorizedPage.jsx
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 
 export default function UnauthorizedPage() {
   const navigate = useNavigate();
 
-  // 일정 시간 후 홈으로 리디렉션
   useEffect(() => {
+    console.log("🚫 UnauthorizedPage: 인증 실패 페이지 진입");
     const timer = setTimeout(() => {
+      console.log("⏳ 5초 후 홈으로 이동");
       navigate('/');
-    }, 5000); // 5초 후 홈으로 이동
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, [navigate]);
