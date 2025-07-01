@@ -7,10 +7,10 @@ import { db } from "../firebase";
  */
 export default async function checkAuthWithToken(slug, token) {
   try {
-    console.log("🔍 checkAuthWithToken 진입:", { slug, token });
+    console.log("🔍 checkAuthWithToken 실행:", { slug, token });
 
     if (!slug || !token) {
-      console.log("🚫 slug 또는 token 없음 => 인증 실패");
+      console.log("🚫 [FAIL] slug 또는 token이 없습니다 → 인증 실패");
       return false;
     }
 
@@ -18,18 +18,20 @@ export default async function checkAuthWithToken(slug, token) {
     const snap = await getDoc(docRef);
 
     if (!snap.exists()) {
-      console.log("🚫 Firestore 문서 없음:", slug);
+      console.log("🚫 [FAIL] Firestore 문서가 없습니다:", slug);
       return false;
     }
 
     const data = snap.data();
+    console.log("📦 Firestore 데이터:", data);
+
     if (!data.ownerToken) {
-      console.log("🚫 Firestore에 ownerToken 없음:", slug);
+      console.log("🚫 [FAIL] Firestore에 ownerToken이 없습니다:", slug);
       return false;
     }
 
     if (data.ownerToken !== token) {
-      console.log("🚫 ownerToken 불일치:", {
+      console.log("🚫 [FAIL] ownerToken 불일치:", {
         slug,
         firestoreToken: data.ownerToken,
         localToken: token
@@ -37,10 +39,10 @@ export default async function checkAuthWithToken(slug, token) {
       return false;
     }
 
-    console.log("✅ 인증 성공:", slug);
+    console.log("✅ [SUCCESS] 인증 통과:", slug);
     return true;
   } catch (err) {
-    console.error("❌ checkAuthWithToken 오류:", err);
+    console.error("🔥 [ERROR] checkAuthWithToken 실행 중 오류:", err);
     return false;
   }
 }

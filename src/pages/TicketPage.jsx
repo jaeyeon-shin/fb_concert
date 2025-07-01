@@ -7,7 +7,7 @@ import checkAuthWithToken from '../utils/checkAuthWithToken';
 export default function TicketPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // 🔥
+  const location = useLocation(); // 🔥 뒤로가기 위치 키 트래킹
 
   const [form, setForm] = useState({ title: '', date: '', seat: '', note: '' });
   const [loading, setLoading] = useState(true);
@@ -38,7 +38,7 @@ export default function TicketPage() {
     }
 
     if (slug) fetchData();
-  }, [slug, location.key, navigate]); // 👈 history 스택 이동 포함
+  }, [slug, location.key, navigate]); // 👈 history 스택 이동 포함해서 항상 재검증
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });

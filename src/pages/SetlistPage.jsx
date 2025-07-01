@@ -7,7 +7,7 @@ import checkAuthWithToken from '../utils/checkAuthWithToken';
 export default function SetlistPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // 🔥
+  const location = useLocation(); // 🔥 뒤로가기 추적
 
   const [setlist, setSetlist] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +37,7 @@ export default function SetlistPage() {
     }
 
     if (slug) fetchData();
-  }, [slug, location.key, navigate]); // 👈 뒤로가기 포함
+  }, [slug, location.key, navigate]); // 👈 뒤로가기 포함 재검증
 
   if (loading) return <div className="p-4 text-white">불러오는 중...</div>;
 

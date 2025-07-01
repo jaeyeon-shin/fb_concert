@@ -5,7 +5,7 @@ import checkAuthWithToken from '../utils/checkAuthWithToken';
 export default function PhotoPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // 🔥 location.key 가져오기
+  const location = useLocation(); // 🔥 뒤로가기 키 추적
 
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +33,7 @@ export default function PhotoPage() {
     }
 
     if (slug) init();
-  }, [slug, location.key, navigate]); // 👈 뒤로가기 포함해서 항상 재실행
+  }, [slug, location.key, navigate]); // 👈 뒤로가기 할 때도 강제 재검증
 
   const handleChange = (e) => {
     const files = Array.from(e.target.files);

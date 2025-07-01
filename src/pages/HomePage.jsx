@@ -10,14 +10,16 @@ import musicIcon from "../assets/icons/music.png";
 export default function HomePage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
+  const location = useLocation(); // 🔥 history 뒤로가기도 key 로 잡는다
 
   const [bgImageUrl, setBgImageUrl] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(true);
   const [loading, setLoading] = useState(true);
 
+  // 페이지 unload 될 때 clearToken
   useEffect(() => {
     const handleUnload = () => {
+      console.log("💥 HomePage unload - clearToken");
       navigator.sendBeacon(`/api/clearToken?slug=${slug}`);
     };
     window.addEventListener("beforeunload", handleUnload);
@@ -26,7 +28,7 @@ export default function HomePage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      console.log("🔄 페이지 이동 / slug:", slug, "location:", location.key);
+      console.log("🔄 HomePage 재로드 / slug:", slug, "location.key:", location.key);
 
       if (!slug) return;
 
@@ -38,27 +40,32 @@ export default function HomePage() {
         });
 
         const data = await res.json();
-        console.log("✅ verify 응답:", data);
+        console.log("✅ /api/verify 응답:", data);
 
         if (!res.ok) {
+          console.log("🚫 인증 실패:", data.message);
           alert(`🚫 인증 실패: ${data.message}`);
           setIsAuthorized(false);
           return;
         }
 
         localStorage.setItem(`ownerToken-${slug}`, data.token);
+        console.log(`🔐 ownerToken-${slug} 저장 완료`);
 
+        // Firestore에서 배경 이미지 불러오기
         const docRef = doc(db, "records", slug);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
+          console.log("🎨 Firestore 문서 존재 → 배경 로드");
           setBgImageUrl(docSnap.data().bgImageUrl || "");
         } else {
+          console.log("❌ Firestore 문서 없음:", slug);
           alert("❌ 등록된 문서가 없습니다.");
           setIsAuthorized(false);
         }
       } catch (err) {
-        console.error("🔥 verify 또는 Firestore 오류:", err);
+        console.error("🔥 HomePage verify / Firestore 오류:", err);
         alert("🔥 오류 발생: " + err.message);
         setIsAuthorized(false);
       } finally {
@@ -67,7 +74,7 @@ export default function HomePage() {
     };
 
     fetchData();
-  }, [slug, location.key]);
+  }, [slug, location.key]); // 뒤로가기까지 완전 방지
 
   if (loading) return <div className="p-4 text-white">로딩 중...</div>;
 
