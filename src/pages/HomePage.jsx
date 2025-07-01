@@ -1,4 +1,3 @@
-// 📁 src/pages/HomePage.jsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
@@ -18,6 +17,7 @@ export default function HomePage() {
   const [isAuthorized, setIsAuthorized] = useState(true);
   const [loading, setLoading] = useState(true);
 
+  // 페이지 닫힐 때 clearToken
   useEffect(() => {
     console.log("✅ useEffect handleUnload 등록:", slug);
     const handleUnload = () => {

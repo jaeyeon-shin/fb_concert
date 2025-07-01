@@ -1,45 +1,37 @@
-// 📁 src/pages/PhotoPage.jsx
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import checkAuthWithToken from '../utils/checkAuthWithToken';
 
 export default function PhotoPage() {
-  const { slug } = useParams(); // ex: /photo/slug_abc123
+  const { slug } = useParams();
+  const navigate = useNavigate();
 
-  const [images, setImages] = useState([]);           // 📸 이미지 상태
-  const [loading, setLoading] = useState(true);       // 🔄 로딩 상태
-  const [authorized, setAuthorized] = useState(true); // 🔐 인증 성공 여부
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(true);
 
-  // 🔐 인증 확인 + 사진 데이터 로드
   useEffect(() => {
-    try {
-      const isSessionAllowed = localStorage.getItem(`auth-ok-${slug}`) === 'true';
-      if (!isSessionAllowed) {
-        setAuthorized(false);
-        setLoading(false);
-        return;
-      }
-
+    async function init() {
       const localToken = localStorage.getItem(`ownerToken-${slug}`);
-      if (!localToken) {
+
+      const isAuth = await checkAuthWithToken(slug, localToken);
+      if (!isAuth) {
         setAuthorized(false);
         setLoading(false);
         return;
       }
 
-      // ✅ 인증 통과 시 로컬 저장소에서 이미지 로드
+      // 🔥 인증 통과 시 로컬 저장소에서 이미지 로드
       const saved = localStorage.getItem(`photoList-${slug}`);
       if (saved) {
         setImages(JSON.parse(saved));
       }
-    } catch (err) {
-      console.error("❌ 인증 또는 이미지 로드 실패:", err);
-      setAuthorized(false);
-    } finally {
       setLoading(false);
     }
+
+    if (slug) init();
   }, [slug]);
 
-  // 📤 이미지 업로드 핸들러
   const handleChange = (e) => {
     const files = Array.from(e.target.files);
     files.forEach((file) => {
@@ -54,47 +46,23 @@ export default function PhotoPage() {
     });
   };
 
-  // ⛔ 인증 실패 시
   if (!authorized) {
-    return (
-      <div className="min-h-screen flex justify-center items-center bg-black text-white text-xl text-center px-4">
-        ⚠️ 재접속이 허용되지 않거나 등록되지 않은 NFC입니다. <br />
-        다시 태그해주세요.
-      </div>
-    );
+    navigate('/unauthorized');
+    return null;
   }
 
-  // ⏳ 로딩 중
-  if (loading) {
-    return <div className="p-4 text-white">불러오는 중...</div>;
-  }
+  if (loading) return <div className="p-4 text-white">불러오는 중...</div>;
 
-  // ✅ UI 렌더링
   return (
     <div className="p-6 max-w-md mx-auto text-white">
       <h2 className="text-2xl font-bold mb-4 text-center">📸 사진첩</h2>
-
-      {/* 파일 업로드 input */}
-      <input
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleChange}
-        className="mb-4"
-      />
-
-      {/* 이미지 표시 */}
+      <input type="file" accept="image/*" multiple onChange={handleChange} className="mb-4" />
       {images.length === 0 ? (
         <p className="text-center text-gray-400">아직 업로드한 사진이 없습니다.</p>
       ) : (
         <div className="grid grid-cols-2 gap-2">
           {images.map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt={`photo-${i}`}
-              className="rounded object-cover w-full aspect-square"
-            />
+            <img key={i} src={src} alt={`photo-${i}`} className="rounded object-cover w-full aspect-square" />
           ))}
         </div>
       )}

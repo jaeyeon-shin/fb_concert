@@ -31,8 +31,10 @@ export default async function handler(req, res) {
     const docRef = db.collection('records').doc(slug);
     await docRef.update({
       ownerToken: FieldValue.delete(),
+      accessedAt: FieldValue.delete(),
     });
 
+    console.log(`🧹 [${slug}] 토큰 및 timestamp 삭제 완료`);
     return res.status(200).json({ success: true, message: `Token cleared for ${slug}` });
   } catch (error) {
     console.error('🔥 Firestore token 삭제 실패:', error);
