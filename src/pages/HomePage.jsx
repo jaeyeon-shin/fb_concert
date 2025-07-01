@@ -21,6 +21,8 @@ export default function HomePage() {
     const handleClear = () => {
       console.log("💥 HomePage unload/visibilitychange - clearToken");
       navigator.sendBeacon(`/api/clearToken?slug=${slug}`);
+      localStorage.removeItem(`ownerToken-${slug}`);
+      console.log(`🗑 localStorage ownerToken-${slug} 제거`);
     };
     window.addEventListener("beforeunload", handleClear);
     document.addEventListener("visibilitychange", () => {
