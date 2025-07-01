@@ -2,19 +2,16 @@ import { randomUUID } from 'crypto';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-// 🔥 Firebase Admin 안전 초기화
 if (!getApps().length) {
   let serviceAccount;
 
   if (process.env.SERVICE_ACCOUNT_KEY_BASE64) {
-    console.log("✅ SERVICE_ACCOUNT_KEY_BASE64 존재");
     const decoded = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf-8');
-    serviceAccount = JSON.parse(decoded.replace(/\\n/g, '\n'));
+    serviceAccount = JSON.parse(decoded);
   } else if (process.env.SERVICE_ACCOUNT_KEY) {
-    console.log("✅ SERVICE_ACCOUNT_KEY 존재");
     serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_KEY.replace(/\\n/g, '\n'));
   } else {
-    throw new Error('❌ No Firebase credentials provided');
+    throw new Error('No Firebase service account credentials provided');
   }
 
   initializeApp({
@@ -24,14 +21,16 @@ if (!getApps().length) {
 
 const db = getFirestore();
 
-// 🔥 메인 핸들러
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
   const { slug } = req.body;
-  if (!slug) return res.status(400).json({ message: 'Missing slug' });
+
+  if (!slug) {
+    return res.status(400).json({ message: 'Missing slug' });
+  }
 
   try {
     const docRef = db.collection('records').doc(slug);
@@ -42,11 +41,13 @@ export default async function handler(req, res) {
     }
 
     const data = docSnap.data();
+
     if (data.ownerToken) {
       return res.status(403).json({ message: 'Already accessed. Please retag NFC.' });
     }
 
     const newToken = randomUUID();
+
     await docRef.update({
       ownerToken: newToken,
       accessedAt: Date.now(),
@@ -54,7 +55,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ token: newToken, nfcId: data.nfcId });
   } catch (err) {
-    console.error('🔥 Error issuing token:', err);
+    console.error('❌ Token issue failed:', err);
     return res.status(500).json({ message: 'Server error' });
   }
 }
