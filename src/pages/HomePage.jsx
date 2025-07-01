@@ -3,11 +3,14 @@ import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import Button from "../components/Button";
+import photoIcon from "../assets/icons/photo.png";
+import ticketIcon from "../assets/icons/ticket.png";
+import musicIcon from "../assets/icons/music.png";
 
 export default function HomePage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // 👈
+  const location = useLocation();
 
   const [bgImageUrl, setBgImageUrl] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(true);
@@ -64,7 +67,7 @@ export default function HomePage() {
     };
 
     fetchData();
-  }, [slug, location.key]); // 👈 뒤로가기 할 때도 다시 verify 함
+  }, [slug, location.key]);
 
   if (loading) return <div className="p-4 text-white">로딩 중...</div>;
 
