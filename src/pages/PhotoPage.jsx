@@ -10,13 +10,13 @@ export default function PhotoPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function init() {
-      console.log("📸 PhotoPage: slug =", slug);
+    const init = async () => {
+      console.log("📸 [PhotoPage] 진입 slug:", slug);
       const localToken = localStorage.getItem(`ownerToken-${slug}`);
-      console.log("🔍 localToken =", localToken);
+      console.log("🔑 localToken =", localToken);
 
       const isAuth = await checkAuthWithToken(slug, localToken);
-      console.log("✅ checkAuthWithToken result =", isAuth);
+      console.log("✅ checkAuthWithToken 결과 =", isAuth);
 
       if (!isAuth) {
         console.log("🚫 인증 실패 → /unauthorized 이동");
@@ -29,14 +29,14 @@ export default function PhotoPage() {
         setImages(JSON.parse(saved));
       }
       setLoading(false);
-    }
+    };
 
     if (slug) init();
 
-    // 🔥 visibilitychange → 앱이 background 다녀올 때 재검증
+    // 🔥 visibilitychange → 앱 다시 활성화되면 재검증
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        console.log("👀 PhotoPage: visibilitychange → 재검증");
+        console.log("👀 [PhotoPage] visibilitychange → 재검증");
         init();
       }
     };

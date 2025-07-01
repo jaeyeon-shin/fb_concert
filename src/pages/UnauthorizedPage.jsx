@@ -5,15 +5,15 @@ export default function UnauthorizedPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log("🚫 UnauthorizedPage 진입 → 인증 실패 상태");
+    console.log("🚫 [UnauthorizedPage] 진입 → 인증 실패 상태");
     const timer = setTimeout(() => {
-      console.log("⏳ 5초 후 / 로 리다이렉트");
+      console.log("⏳ [UnauthorizedPage] 5초 후 → / 로 리다이렉트");
       navigate('/');
     }, 5000);
 
     return () => {
       clearTimeout(timer);
-      console.log("🧹 UnauthorizedPage cleanup: 타이머 해제");
+      console.log("🧹 [UnauthorizedPage] cleanup → 타이머 해제");
     };
   }, [navigate]);
 
