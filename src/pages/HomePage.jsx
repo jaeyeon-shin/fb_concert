@@ -20,9 +20,9 @@ export default function HomePage() {
   useEffect(() => {
     const handleClear = () => {
       console.log("💥 HomePage unload/visibilitychange - clearToken");
-      navigator.sendBeacon(`/api/clearToken?slug=${slug}`);
       localStorage.removeItem(`ownerToken-${slug}`);
-      console.log(`🗑 localStorage ownerToken-${slug} 제거`);
+      console.log(`🗑 localStorage ownerToken-${slug} 제거 완료`);
+      navigator.sendBeacon(`/api/clearToken?slug=${slug}`);
     };
     window.addEventListener("beforeunload", handleClear);
     document.addEventListener("visibilitychange", () => {
@@ -33,7 +33,7 @@ export default function HomePage() {
       document.removeEventListener("visibilitychange", handleClear);
     };
   }, [slug]);
-
+  
   useEffect(() => {
     const run = async () => {
       console.log("🔄 HomePage 이동: slug =", slug);
