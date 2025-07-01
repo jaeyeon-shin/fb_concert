@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { useParams, useNavigate } from 'react-router-dom';
 import checkAuthWithToken from '../utils/checkAuthWithToken';
 
 export default function TicketPage() {
@@ -38,7 +38,7 @@ export default function TicketPage() {
 
     if (slug) fetchData();
 
-    // 🔥 visibilitychange → 앱 다시 활성화되면 재검증
+    // 🔥 visibilitychange → 앱 복귀 시 강제 재검증
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         console.log("👀 TicketPage: visibilitychange → 재검증");
@@ -67,7 +67,7 @@ export default function TicketPage() {
 
   return (
     <div className="p-6 max-w-md mx-auto text-white">
-      <h2 className="text-2xl font-bold mb-4">🎫 티켓 정보 입력</h2>
+      <h2 className="text-2xl font-bold mb-4 text-center">🎫 티켓 정보 입력</h2>
       <label className="block mb-2">
         공연명
         <input

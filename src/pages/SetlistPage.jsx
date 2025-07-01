@@ -37,7 +37,7 @@ export default function SetlistPage() {
 
     if (slug) fetchData();
 
-    // 🔥 visibilitychange 로 앱 복귀할 때 강제 재검증
+    // 🔥 visibilitychange → 앱 다시 돌아올 때도 강제 재검증
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         console.log("👀 SetlistPage: visibilitychange → 재검증");
@@ -49,7 +49,7 @@ export default function SetlistPage() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [slug, navigate]); // ✅ location.key 제거
+  }, [slug, navigate]);
 
   if (loading) return <div className="p-4 text-white">불러오는 중...</div>;
 

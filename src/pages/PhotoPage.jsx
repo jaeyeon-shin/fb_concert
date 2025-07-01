@@ -33,7 +33,7 @@ export default function PhotoPage() {
 
     if (slug) init();
 
-    // 🔥 visibilitychange 로 앱 복귀할 때도 강제 재검증
+    // 🔥 visibilitychange → 앱이 background 다녀올 때 재검증
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         console.log("👀 PhotoPage: visibilitychange → 재검증");
@@ -45,7 +45,7 @@ export default function PhotoPage() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [slug, navigate]); // ✅ location.key 제거
+  }, [slug, navigate]);
 
   const handleChange = (e) => {
     const files = Array.from(e.target.files);

@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -6,16 +6,17 @@ import Button from "../components/Button";
 import photoIcon from "../assets/icons/photo.png";
 import ticketIcon from "../assets/icons/ticket.png";
 import musicIcon from "../assets/icons/music.png";
+import checkAuthWithToken from "../utils/checkAuthWithToken";
 
 export default function HomePage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [bgImageUrl, setBgImageUrl] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  // ✅ unload + visibilitychange 모두 사용
   useEffect(() => {
     const handleClear = () => {
       console.log("💥 HomePage unload/visibilitychange - clearToken");
@@ -33,52 +34,69 @@ export default function HomePage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      console.log("🔄 HomePage 이동 / slug:", slug);
+      console.log("🔄 HomePage 이동 / slug:", slug, "location.key:", location.key);
 
       if (!slug) return;
 
-      try {
-        const res = await fetch("/api/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug }),
-        });
+      const localToken = localStorage.getItem(`ownerToken-${slug}`);
+      console.log("🗝 localToken =", localToken);
 
-        const data = await res.json();
-        console.log("✅ /api/verify 응답:", data);
+      if (!localToken) {
+        // 최초 태그 → verify 필요
+        try {
+          const res = await fetch("/api/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ slug }),
+          });
 
-        if (!res.ok) {
-          console.log("🚫 인증 실패:", data.message);
-          alert(`🚫 인증 실패: ${data.message}`);
+          const data = await res.json();
+          console.log("✅ /api/verify 응답:", data);
+
+          if (!res.ok) {
+            console.log("🚫 인증 실패:", data.message);
+            alert(`🚫 인증 실패: ${data.message}`);
+            setIsAuthorized(false);
+            return;
+          }
+
+          localStorage.setItem(`ownerToken-${slug}`, data.token);
+          console.log(`🔐 ownerToken-${slug} 저장 완료`);
+
+          // Firestore에서 배경 이미지 불러오기
+          const docRef = doc(db, "records", slug);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setBgImageUrl(docSnap.data().bgImageUrl || "");
+          }
+        } catch (err) {
+          console.error("🔥 HomePage verify 오류:", err);
+          alert("🔥 오류 발생: " + err.message);
           setIsAuthorized(false);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // 이미 토큰 있는 상태 → checkAuthWithToken 으로 검증
+        const isAuth = await checkAuthWithToken(slug, localToken);
+        console.log("✅ checkAuthWithToken =", isAuth);
+
+        if (!isAuth) {
+          navigate('/unauthorized');
           return;
         }
 
-        localStorage.setItem(`ownerToken-${slug}`, data.token);
-        console.log(`🔐 ownerToken-${slug} 저장 완료`);
-
         const docRef = doc(db, "records", slug);
         const docSnap = await getDoc(docRef);
-
         if (docSnap.exists()) {
-          console.log("🎨 Firestore 문서 → 배경 로드");
           setBgImageUrl(docSnap.data().bgImageUrl || "");
-        } else {
-          console.log("❌ Firestore 문서 없음:", slug);
-          alert("❌ 등록된 문서가 없습니다.");
-          setIsAuthorized(false);
         }
-      } catch (err) {
-        console.error("🔥 HomePage 오류:", err);
-        alert("🔥 오류 발생: " + err.message);
-        setIsAuthorized(false);
-      } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [slug]); // ✅ location.key 제거
+  }, [slug, location.key, navigate]);
 
   if (loading) return <div className="p-4 text-white">로딩 중...</div>;
 
