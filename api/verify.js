@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 
 if (!getApps().length) {
   let serviceAccount;
@@ -37,14 +37,12 @@ export default async function handler(req, res) {
     const docSnap = await docRef.get();
 
     if (!docSnap.exists) {
-      console.log(`❌ [${slug}] Firestore 문서 없음`);
       return res.status(404).json({ message: 'Invalid NFC slug' });
     }
 
     const data = docSnap.data();
 
     if (data.ownerToken) {
-      console.log(`🚫 [${slug}] 이미 ownerToken 존재: ${data.ownerToken}`);
       return res.status(403).json({ message: 'Already accessed. Please retag NFC.' });
     }
 
@@ -52,10 +50,8 @@ export default async function handler(req, res) {
 
     await docRef.update({
       ownerToken: newToken,
-      accessedAt: FieldValue.serverTimestamp(),
+      accessedAt: Date.now(),
     });
-
-    console.log(`✅ [${slug}] 새 토큰 발급 완료: ${newToken}`);
 
     return res.status(200).json({ token: newToken, nfcId: data.nfcId });
   } catch (err) {
