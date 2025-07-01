@@ -3,7 +3,7 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 if (!getApps().length) {
   const decoded = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf-8');
-  const serviceAccount = JSON.parse(decoded.replace(/\\n/g, '\n'));
+  const serviceAccount = JSON.parse(decoded);
 
   initializeApp({
     credential: cert(serviceAccount),
