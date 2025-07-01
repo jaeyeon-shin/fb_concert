@@ -3,16 +3,8 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 if (!getApps().length) {
-  let serviceAccount;
-
-  if (process.env.SERVICE_ACCOUNT_KEY_BASE64) {
-    const decoded = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf-8');
-    serviceAccount = JSON.parse(decoded.replace(/\\n/g, '\n'));
-  } else if (process.env.SERVICE_ACCOUNT_KEY) {
-    serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_KEY.replace(/\\n/g, '\n'));
-  } else {
-    throw new Error('No Firebase service account credentials provided');
-  }
+  const decoded = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf-8');
+  const serviceAccount = JSON.parse(decoded.replace(/\\n/g, '\n'));
 
   initializeApp({
     credential: cert(serviceAccount),
@@ -27,7 +19,6 @@ export default async function handler(req, res) {
   }
 
   const { slug } = req.body;
-
   if (!slug) {
     return res.status(400).json({ message: 'Missing slug' });
   }
@@ -41,13 +32,11 @@ export default async function handler(req, res) {
     }
 
     const data = docSnap.data();
-
     if (data.ownerToken) {
       return res.status(403).json({ message: 'Already accessed. Please retag NFC.' });
     }
 
     const newToken = randomUUID();
-
     await docRef.update({
       ownerToken: newToken,
       accessedAt: Date.now(),
